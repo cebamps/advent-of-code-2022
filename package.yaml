@@ -3,6 +3,7 @@ version:             0.1.0.0
 
 dependencies:
   - base >= 4.15 && < 5
+  - megaparsec
 
 library:
   source-dirs: src
