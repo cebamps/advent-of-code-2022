@@ -1,15 +1,16 @@
+{-# OPTIONS_GHC -W #-}
+
 module D01.Solution (solve) where
 
-import Data.Void (Void)
-import Text.Megaparsec
-    ( parse, errorBundlePretty, sepEndBy1, some, Parsec )
-import Text.Megaparsec.Char (digitChar, eol)
+import AOC.Parser
 import Data.List (sort)
-import Data.Ord (Down(..))
+import Data.Ord (Down (..))
+import Text.Megaparsec (sepEndBy1, some)
+import Text.Megaparsec.Char (digitChar, eol)
 
 solve :: String -> IO ()
 solve inpStr = do
-  inp <- either (fail . errorBundlePretty) return $ parse inputP "input" inpStr
+  inp <- parseOrFail inputP "input" inpStr
 
   solve1 inp
   solve2 inp
@@ -23,10 +24,10 @@ solve2 = print . sum . take 3 . sortDesc . fmap sum
     sortDesc :: Ord a => [a] -> [a]
     sortDesc = fmap getDown . sort . fmap Down
 
-inputP :: Parsec Void String [[Int]]
+inputP :: Parser [[Int]]
 inputP = oneP `sepEndBy1` eol
   where
-    oneP :: Parsec Void String [Int]
+    oneP :: Parser [Int]
     oneP = numberP `sepEndBy1` eol
-    numberP :: Parsec Void String Int
+    numberP :: Parser Int
     numberP = read <$> some digitChar
