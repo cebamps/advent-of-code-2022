@@ -1,6 +1,12 @@
 name:                advent-of-code-y2022
 version:             0.1.0.0
 
+ghc-options:
+  - -W
+
+default-extensions:
+  - LambdaCase
+
 dependencies:
   - base >= 4.15 && < 5
   - megaparsec

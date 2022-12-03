@@ -1,6 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
-{-# OPTIONS_GHC -W #-}
-
 module D03.Solution where
 
 import AOC.Parser

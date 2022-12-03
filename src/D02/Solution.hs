@@ -1,7 +1,6 @@
 module D02.Solution where
 
 import AOC.Parser
-import Control.Applicative ((<|>))
 import Data.Bifunctor (Bifunctor (second))
 import Data.Monoid (Sum (..))
 import Text.Megaparsec

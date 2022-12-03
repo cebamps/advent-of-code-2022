@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -W #-}
-
 module D01.Solution (solve) where
 
 import AOC.Parser

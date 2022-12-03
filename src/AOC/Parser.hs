@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -W #-}
-
 module AOC.Parser (Parser, parseOrFail) where
 
 import Data.Void
