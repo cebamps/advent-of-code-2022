@@ -13,6 +13,7 @@ library
       AOC.Parser
       D01.Solution
       D02.Solution
+      D03.Solution
   other-modules:
       Paths_advent_of_code_y2022
   hs-source-dirs:
@@ -36,6 +37,18 @@ executable d01
 
 executable d02
   main-is: d02.hs
+  other-modules:
+      Paths_advent_of_code_y2022
+  hs-source-dirs:
+      exe
+  build-depends:
+      advent-of-code-y2022
+    , base >=4.15 && <5
+    , megaparsec
+  default-language: Haskell2010
+
+executable d03
+  main-is: d03.hs
   other-modules:
       Paths_advent_of_code_y2022
   hs-source-dirs:
