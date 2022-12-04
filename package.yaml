@@ -22,7 +22,7 @@ executables:
     dependencies: advent-of-code-y2022
   d02: { <<: *base-exe, main: d02.hs }
   d03: { <<: *base-exe, main: d03.hs }
-# d04: { <<: *base-exe, main: d04.hs }
+  d04: { <<: *base-exe, main: d04.hs }
 # d05: { <<: *base-exe, main: d05.hs }
 # d06: { <<: *base-exe, main: d06.hs }
 # d07: { <<: *base-exe, main: d07.hs }

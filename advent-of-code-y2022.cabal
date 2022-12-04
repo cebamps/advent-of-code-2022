@@ -14,6 +14,7 @@ library
       D01.Solution
       D02.Solution
       D03.Solution
+      D04.Solution
   other-modules:
       Paths_advent_of_code_y2022
   hs-source-dirs:
@@ -58,6 +59,21 @@ executable d02
 
 executable d03
   main-is: d03.hs
+  other-modules:
+      Paths_advent_of_code_y2022
+  hs-source-dirs:
+      exe
+  default-extensions:
+      LambdaCase
+  ghc-options: -W
+  build-depends:
+      advent-of-code-y2022
+    , base >=4.15 && <5
+    , megaparsec
+  default-language: Haskell2010
+
+executable d04
+  main-is: d04.hs
   other-modules:
       Paths_advent_of_code_y2022
   hs-source-dirs:
