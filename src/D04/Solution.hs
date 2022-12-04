@@ -16,12 +16,6 @@ overlaps :: Range -> Range -> Bool
 
 --
 
-solve :: String -> IO ()
-solve s = do
-  inp <- parseOrFail inputP "input" s
-  solve1 inp
-  solve2 inp
-
 solve1 :: Input -> IO ()
 solve1 = print . length . filter (\(x, y) -> x `contains` y || y `contains` x)
 
@@ -36,3 +30,11 @@ inputP = pairP `sepEndBy` eol <* eof
   where
     pairP = (,) <$> rangeP <* char ',' <*> rangeP
     rangeP = (,) <$> (read <$> some digitChar) <* char '-' <*> (read <$> some digitChar)
+
+---
+
+solve :: String -> IO ()
+solve s = do
+  inp <- parseOrFail inputP "input" s
+  solve1 inp
+  solve2 inp
