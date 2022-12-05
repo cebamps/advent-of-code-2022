@@ -22,6 +22,19 @@ type Input = (Stacks, [Move])
 performMove :: Move -> Stacks -> Maybe Stacks
 performMove (Move qty from to) = repeatM qty (pop from >=> (return . uncurry (push to)))
 
+performMoveMulti :: Move -> Stacks -> Maybe Stacks
+performMoveMulti (Move qty from to) = popN qty from >=> return . uncurry (pushN to)
+
+popN :: Int -> Index -> Stacks -> Maybe ([Crate], Stacks)
+popN qty idx stacks = case splitAt qty <$> M.lookup idx stacks of
+  Just (h, t) -> Just (h, M.insert idx t stacks)
+  _ -> Nothing
+
+pushN :: Index -> [Crate] -> Stacks -> Stacks
+pushN idx crates = flip M.alter idx $ \case
+  Nothing -> Just crates
+  Just cs -> Just $ crates ++ cs
+
 push :: Index -> Crate -> Stacks -> Stacks
 push idx crate = flip M.alter idx $ \case
   Nothing -> Just [crate]
@@ -38,10 +51,16 @@ repeatM n f = f >=> repeatM (n - 1) f
 
 --
 
-solve1 :: Input -> IO ()
-solve1 (stacks, moves) = do
-  let Just stacks' = foldl' (\s move -> s >>= performMove move) (Just stacks) moves
+solveEither :: (Move -> Stacks -> Maybe Stacks) -> Input -> IO ()
+solveEither perform (stacks, moves) = do
+  let Just stacks' = foldl' (\s move -> s >>= perform move) (Just stacks) moves
   print . sequence $ M.foldr' ((:) . listToMaybe) [] stacks'
+
+solve1 :: Input -> IO ()
+solve1 = solveEither performMove
+
+solve2 :: Input -> IO ()
+solve2 = solveEither performMoveMulti
 
 ---
 
@@ -86,4 +105,4 @@ solve :: String -> IO ()
 solve s = do
   inp <- parseOrFail inputP "input" s
   solve1 inp
-  -- solve2 inp
+  solve2 inp
