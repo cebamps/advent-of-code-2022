@@ -54,7 +54,7 @@ repeatM n f = f >=> repeatM (n - 1) f
 solveEither :: (Move -> Stacks -> Maybe Stacks) -> Input -> IO ()
 solveEither perform (stacks, moves) = do
   let Just stacks' = foldl' (\s move -> s >>= perform move) (Just stacks) moves
-  print . sequence $ M.foldr' ((:) . listToMaybe) [] stacks'
+  print . traverse listToMaybe $ M.elems stacks'
 
 solve1 :: Input -> IO ()
 solve1 = solveEither performMove
