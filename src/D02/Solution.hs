@@ -38,12 +38,12 @@ solveEither :: [(Play, Play)] -> IO ()
 solveEither = print . getSum . foldMap (Sum . uncurry scorePlay)
 
 scorePlay :: Play -> Play -> Int
-scorePlay advPlay myPlay = winScore advPlay myPlay + shapeScore myPlay
+scorePlay advPlay myPlay = winScore + shapeScore myPlay
   where
     shapeScore Rock = 1
     shapeScore Paper = 2
     shapeScore Scissors = 3
-    winScore advPlay myPlay
+    winScore
       | advPlay == myPlay = 3
       | myPlay `beats` advPlay = 6
       | otherwise = 0
