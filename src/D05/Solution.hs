@@ -1,6 +1,6 @@
 module D05.Solution where
 
-import AOC.Parser
+import AOC.Parser hiding (anyLineP)
 import Control.Monad ((>=>))
 import Data.Foldable (fold, foldl')
 import qualified Data.Map.Strict as M
