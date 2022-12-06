@@ -6,7 +6,7 @@ import Text.Megaparsec.Char (eol)
 
 type Input = ()
 
---
+---
 
 solve1 :: Input -> IO ()
 solve1 inp = return ()
