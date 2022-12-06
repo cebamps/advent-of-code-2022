@@ -6,6 +6,8 @@ import Text.Megaparsec
 
 type Input = String
 
+-- that won't work on infinite streams (try this on (1 : repeat 2)), but I
+-- don't care
 allUnique :: Eq a => [a] -> Bool
 allUnique [] = True
 allUnique (x : xs) = x `notElem` xs && allUnique xs
