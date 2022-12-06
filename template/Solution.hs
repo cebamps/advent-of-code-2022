@@ -14,7 +14,7 @@ solve1 inp = return ()
 solve2 :: Input -> IO ()
 solve2 inp = return ()
 
--- $> readFile "inputs/d05-test.txt" >>= solve
+-- $> readFile "inputs/d00-test.txt" >>= solve
 
 ---
 
