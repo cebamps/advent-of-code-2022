@@ -62,6 +62,13 @@ recursiveSizes x =
 solve1 :: Input -> IO ()
 solve1 inp = print $ getSum . fold . filter (<= 100_000) . M.elems . recursiveSizes . entries $ inp
 
+solve2 :: Input -> IO ()
+solve2 inp =
+  let sizes = recursiveSizes . entries $ inp
+      usage = sizes M.! []
+      maxUsage = 70_000_000 - 30_000_000
+   in print . getSum . minimum $ [s | s <- M.elems sizes, let usage' = usage - s, usage' <= maxUsage ]
+
 ---
 
 inputP :: Parser Input
@@ -93,3 +100,4 @@ solve :: String -> IO ()
 solve s = do
   inp <- parseOrFail inputP "input" s
   solve1 inp
+  solve2 inp
