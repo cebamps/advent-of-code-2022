@@ -54,8 +54,8 @@ entries = M.fromList . entryStream
 recursiveSizes :: M.Map Path [LsEntry] -> M.Map Path (Sum Int)
 recursiveSizes x =
   let directSizes = fmap (foldMap (Sum . size)) x
-      parentContribs = M.fromListWith (<>) [(t, s) | (p, s) <- M.toList directSizes, t <- tails p]
-   in parentContribs
+      subtotals = M.fromListWith (<>) [(t, s) | (p, s) <- M.toList directSizes, t <- tails p]
+   in subtotals
 
 ---
 
