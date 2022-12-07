@@ -44,7 +44,7 @@ runCommand cmd = do
     newPath (CdSubdir h') p = h' : p
     newPath (Ls _) s = s
 
--- assumes no duplicates
+-- assumes that any duplicate file listing will be consistent, of course
 entries :: Input -> M.Map Path [LsEntry]
 entries = M.fromList . entryStream
   where
@@ -54,7 +54,7 @@ entries = M.fromList . entryStream
 recursiveSizes :: M.Map Path [LsEntry] -> M.Map Path (Sum Int)
 recursiveSizes x =
   let directSizes = fmap (foldMap (Sum . size)) x
-      parentContribs = M.fromListWith (<>) [(c, s) | (p, s) <- M.toList directSizes, c <- tails p]
+      parentContribs = M.fromListWith (<>) [(t, s) | (p, s) <- M.toList directSizes, t <- tails p]
    in parentContribs
 
 ---
@@ -67,7 +67,12 @@ solve2 inp =
   let sizes = recursiveSizes . entries $ inp
       usage = sizes M.! []
       maxUsage = 70_000_000 - 30_000_000
-   in print . getSum . minimum $ [s | s <- M.elems sizes, let usage' = usage - s, usage' <= maxUsage ]
+   in print . getSum . minimum $
+        [ s
+          | s <- M.elems sizes,
+            let usage' = usage - s,
+            usage' <= maxUsage
+        ]
 
 ---
 
