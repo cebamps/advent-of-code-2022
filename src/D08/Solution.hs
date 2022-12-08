@@ -1,4 +1,4 @@
-module D08.Solution where
+module D08.Solution (solve) where
 
 import AOC.Parser
 import Control.Comonad (Comonad (extend))
@@ -21,21 +21,6 @@ type Grid = Pointer Idx
 type Input = Grid Int
 
 -- basic utilities to find our bearings
-
-idxPlus :: Idx -> Idx -> Idx
-idxPlus (x, y) (dx, dy) = (x + dx, y + dy)
-
-unit :: Direction -> Idx
-unit North = (0, -1)
-unit South = (0, 1)
-unit West = (-1, 0)
-unit East = (1, 0)
-
-idxClamp :: Dim -> Idx -> Idx
-idxClamp (mx, my) (x, y) = (clamp (0, mx - 1) x, clamp (0, my - 1) y)
-  where
-    clamp :: Ord a => (a, a) -> a -> a
-    clamp (l, r) = max l . min r
 
 idxWithin :: Idx -> Idx -> [Idx]
 idxWithin (x1, y1) (x2, y2) = [(x, y) | x <- range x1 x2, y <- range y1 y2]
