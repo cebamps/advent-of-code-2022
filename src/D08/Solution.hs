@@ -7,7 +7,7 @@ import Control.Comonad.Store.Pointer (Pointer, experiment, pointer, pointerBound
 import Data.Array (listArray)
 import Data.Foldable (toList)
 import Data.List (delete)
-import Text.Megaparsec
+import Text.Megaparsec hiding (count)
 import Text.Megaparsec.Char (digitChar, eol)
 
 type Dim = (Int, Int)
@@ -67,30 +67,30 @@ lookToEdge dir = do
 
 -- our actual tree business
 
-visibleFromEdge :: Ord a => Direction -> Grid a -> Bool
-visibleFromEdge dir = do
+isVisibleFromEdge :: Ord a => Direction -> Grid a -> Bool
+isVisibleFromEdge dir = do
   focused <- extract
   others <- lookToEdge dir
   return $ all (focused >) others
 
-visibleFromOutside :: Ord a => Grid a -> Bool
-visibleFromOutside g = or [visibleFromEdge dir g | dir <- [North, East, West, South]]
+isVisibleFromOutside :: Ord a => Grid a -> Bool
+isVisibleFromOutside g = or [isVisibleFromEdge dir g | dir <- [North, East, West, South]]
 
-visibleToward :: Direction -> Grid Int -> Int
-visibleToward dir = do
+numVisibleToward :: Direction -> Grid Int -> Int
+numVisibleToward dir = do
   focusedHeight <- extract
   heights <- lookToEdge dir
-  return $ countVisible focusedHeight heights
+  return $ count focusedHeight heights
+  where
+    count :: Int -> [Int] -> Int
+    count h heights =
+      let (vis, block) = span (< h) heights
+       in length vis + case block of
+            [] -> 0
+            _ -> 1
 
 scenicScore :: Grid Int -> Int
-scenicScore g = product [visibleToward dir g | dir <- [North, East, West, South]]
-
-countVisible :: Int -> [Int] -> Int
-countVisible h heights =
-  let (vis, block) = span (< h) heights
-   in length vis + case block of
-        [] -> 0
-        _ -> 1
+scenicScore g = product [numVisibleToward dir g | dir <- [North, East, West, South]]
 
 -- and now we implement the grid!
 grid :: Dim -> [a] -> Maybe (Grid a)
@@ -104,7 +104,7 @@ grid (mx, my) items
 
 solve1 :: Input -> IO ()
 solve1 inp =
-  let visibleArray = fst . runPointer $ extend visibleFromOutside inp
+  let visibleArray = fst . runPointer $ extend isVisibleFromOutside inp
       numVisible = length . filter id . toList $ visibleArray
    in print numVisible
 
