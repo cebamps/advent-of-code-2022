@@ -1,10 +1,14 @@
 module D08.Solution where
 
 import AOC.Parser
+import Control.Comonad (Comonad (extend))
 import Control.Comonad.Env (Comonad (extract))
-import Control.Comonad.Store.Pointer (Pointer, experiment, pointer, pointerBounds)
+import Control.Comonad.Store.Pointer (Pointer, experiment, pointer, pointerBounds, runPointer)
 import Data.Array (listArray)
+import Data.Foldable (toList)
+import Data.List (delete)
 import Text.Megaparsec
+import Text.Megaparsec.Char (digitChar, eol)
 
 type Dim = (Int, Int)
 
@@ -13,6 +17,8 @@ type Idx = (Int, Int)
 data Direction = East | West | North | South deriving (Eq, Show)
 
 type Grid = Pointer Idx
+
+type Input = Grid Int
 
 -- basic utilities to find our bearings
 
@@ -32,7 +38,12 @@ idxClamp (mx, my) (x, y) = (clamp (0, mx - 1) x, clamp (0, my - 1) y)
     clamp (l, r) = max l . min r
 
 idxWithin :: Idx -> Idx -> [Idx]
-idxWithin (x1, y1) (x2, y2) = [(x, y) | x <- [min x1 x2 .. max x1 x2], y <- [min y1 y2 .. max y1 y2]]
+idxWithin (x1, y1) (x2, y2) = [(x, y) | x <- range x1 x2, y <- range y1 y2]
+
+range :: (Enum a, Ord a) => a -> a -> [a]
+range x y
+  | x < y = [x .. y]
+  | otherwise = [x, pred x .. y]
 
 -- comonadic grid fun
 
@@ -41,7 +52,7 @@ gridDims :: Grid a -> Dim
 gridDims g = let ((0, 0), (hx, hy)) = pointerBounds g in (hx + 1, hy + 1)
 
 toEdge :: Dim -> Direction -> Idx -> [Idx]
-toEdge dim dir pos = idxWithin ((pos `idxPlus` unit dir) `idxClamp` dim) (extreme dim dir pos)
+toEdge dim dir pos = delete pos $ idxWithin pos (extreme dim dir pos)
   where
     extreme _ North (x, _) = (x, 0)
     extreme _ West (_, y) = (0, y)
@@ -56,14 +67,30 @@ lookToEdge dir = do
 
 -- our actual tree business
 
-visibleFrom :: Ord a => Direction -> Grid a -> Bool
-visibleFrom dir = do
+visibleFromEdge :: Ord a => Direction -> Grid a -> Bool
+visibleFromEdge dir = do
   focused <- extract
   others <- lookToEdge dir
   return $ all (focused >) others
 
-visible :: Ord a => Grid a -> Bool
-visible g = or [visibleFrom dir g | dir <- [North, East, West, South]]
+visibleFromOutside :: Ord a => Grid a -> Bool
+visibleFromOutside g = or [visibleFromEdge dir g | dir <- [North, East, West, South]]
+
+visibleToward :: Direction -> Grid Int -> Int
+visibleToward dir = do
+  focusedHeight <- extract
+  heights <- lookToEdge dir
+  return $ countVisible focusedHeight heights
+
+scenicScore :: Grid Int -> Int
+scenicScore g = product [visibleToward dir g | dir <- [North, East, West, South]]
+
+countVisible :: Int -> [Int] -> Int
+countVisible h heights =
+  let (vis, block) = span (< h) heights
+   in length vis + case block of
+        [] -> 0
+        _ -> 1
 
 -- and now we implement the grid!
 grid :: Dim -> [a] -> Maybe (Grid a)
@@ -75,22 +102,29 @@ grid (mx, my) items
 
 -- experiment (toEdge d North)
 
-type Input = ()
-
 ---
 
 solve1 :: Input -> IO ()
-solve1 inp = return ()
+solve1 inp =
+  let visibleArray = fst . runPointer $ extend visibleFromOutside inp
+      numVisible = length . filter id . toList $ visibleArray
+   in print numVisible
 
 solve2 :: Input -> IO ()
-solve2 inp = return ()
-
---- $> readFile "inputs/d08-test.txt" >>= solve
+solve2 inp =
+  let scenicScores = fst . runPointer $ extend scenicScore inp
+   in print $ maximum scenicScores
 
 ---
 
 inputP :: Parser Input
-inputP = undefined <* eof
+inputP = do
+  rows <- some (read . (: []) <$> digitChar) `sepEndBy1` eol <* eof :: Parser [[Int]]
+  let h = length rows
+      w = length . head $ rows
+  case grid (w, h) (concat rows) of
+    Just g -> return g
+    Nothing -> fail $ "Something went wrong, check input dimensions? Got " <> show (w, h)
 
 ---
 
