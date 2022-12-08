@@ -18,6 +18,7 @@ library
       D05.Solution
       D06.Solution
       D07.Solution
+      D08.Solution
   other-modules:
       Paths_advent_of_code_y2022
   hs-source-dirs:
@@ -27,7 +28,9 @@ library
       NumericUnderscores
   ghc-options: -Wall
   build-depends:
-      base >=4.15 && <5
+      array
+    , base >=4.15 && <5
+    , comonad
     , containers
     , megaparsec
     , transformers
@@ -45,7 +48,9 @@ executable d01
   ghc-options: -Wall
   build-depends:
       advent-of-code-y2022
+    , array
     , base >=4.15 && <5
+    , comonad
     , containers
     , megaparsec
     , transformers
@@ -63,7 +68,9 @@ executable d02
   ghc-options: -Wall
   build-depends:
       advent-of-code-y2022
+    , array
     , base >=4.15 && <5
+    , comonad
     , containers
     , megaparsec
     , transformers
@@ -81,7 +88,9 @@ executable d03
   ghc-options: -Wall
   build-depends:
       advent-of-code-y2022
+    , array
     , base >=4.15 && <5
+    , comonad
     , containers
     , megaparsec
     , transformers
@@ -99,7 +108,9 @@ executable d04
   ghc-options: -Wall
   build-depends:
       advent-of-code-y2022
+    , array
     , base >=4.15 && <5
+    , comonad
     , containers
     , megaparsec
     , transformers
@@ -117,7 +128,9 @@ executable d05
   ghc-options: -Wall
   build-depends:
       advent-of-code-y2022
+    , array
     , base >=4.15 && <5
+    , comonad
     , containers
     , megaparsec
     , transformers
@@ -135,7 +148,9 @@ executable d06
   ghc-options: -Wall
   build-depends:
       advent-of-code-y2022
+    , array
     , base >=4.15 && <5
+    , comonad
     , containers
     , megaparsec
     , transformers
@@ -153,7 +168,29 @@ executable d07
   ghc-options: -Wall
   build-depends:
       advent-of-code-y2022
+    , array
     , base >=4.15 && <5
+    , comonad
+    , containers
+    , megaparsec
+    , transformers
+  default-language: Haskell2010
+
+executable d08
+  main-is: d08.hs
+  other-modules:
+      Paths_advent_of_code_y2022
+  hs-source-dirs:
+      exe
+  default-extensions:
+      LambdaCase
+      NumericUnderscores
+  ghc-options: -Wall
+  build-depends:
+      advent-of-code-y2022
+    , array
+    , base >=4.15 && <5
+    , comonad
     , containers
     , megaparsec
     , transformers
