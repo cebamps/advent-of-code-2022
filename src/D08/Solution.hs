@@ -100,8 +100,6 @@ grid (mx, my) items
      in Just . pointer arr $ (0, 0)
   | otherwise = Nothing
 
--- experiment (toEdge d North)
-
 ---
 
 solve1 :: Input -> IO ()
