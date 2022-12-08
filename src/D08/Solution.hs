@@ -1,8 +1,7 @@
 module D08.Solution (solve) where
 
 import AOC.Parser
-import Control.Comonad (Comonad (extend))
-import Control.Comonad.Env (Comonad (extract))
+import Control.Comonad (Comonad (extend, extract))
 import Control.Comonad.Store.Pointer (Pointer, experiment, pointer, pointerBounds, runPointer)
 import Data.Array (listArray)
 import Data.Foldable (toList)
@@ -81,8 +80,8 @@ scenicScore g = product [numVisibleToward dir g | dir <- [North, East, West, Sou
 grid :: Dim -> [a] -> Maybe (Grid a)
 grid (mx, my) items
   | length items == mx * my =
-    let arr = listArray ((0, 0), (mx - 1, my - 1)) items
-     in Just . pointer arr $ (0, 0)
+      let arr = listArray ((0, 0), (mx - 1, my - 1)) items
+       in Just . pointer arr $ (0, 0)
   | otherwise = Nothing
 
 ---
