@@ -1,9 +1,9 @@
 module D08.Solution where
 
 import AOC.Parser
-import Control.Comonad.Env (Comonad (extract), ComonadEnv (ask), EnvT (EnvT))
-import Control.Comonad.Store (ComonadStore (experiment), Store, store)
-import Data.Array (listArray, (!))
+import Control.Comonad.Env (Comonad (extract))
+import Control.Comonad.Store.Pointer (Pointer, experiment, pointer, pointerBounds)
+import Data.Array (listArray)
 import Text.Megaparsec
 
 type Dim = (Int, Int)
@@ -12,8 +12,7 @@ type Idx = (Int, Int)
 
 data Direction = East | West | North | South deriving (Eq, Show)
 
--- following "comonad transformers in the wild"
-type Grid a = EnvT Dim (Store Idx) a
+type Grid = Pointer Idx
 
 -- basic utilities to find our bearings
 
@@ -37,6 +36,10 @@ idxWithin (x1, y1) (x2, y2) = [(x, y) | x <- [min x1 x2 .. max x1 x2], y <- [min
 
 -- comonadic grid fun
 
+-- TODO: working on boundaries rather than dimensions would be nicer
+gridDims :: Grid a -> Dim
+gridDims g = let ((0, 0), (hx, hy)) = pointerBounds g in (hx + 1, hy + 1)
+
 toEdge :: Dim -> Direction -> Idx -> [Idx]
 toEdge dim dir pos = idxWithin ((pos `idxPlus` unit dir) `idxClamp` dim) (extreme dim dir pos)
   where
@@ -48,7 +51,7 @@ toEdge dim dir pos = idxWithin ((pos `idxPlus` unit dir) `idxClamp` dim) (extrem
 lookToEdge :: Direction -> Grid a -> [a]
 lookToEdge dir = do
   -- reader monad on (Grid a)
-  dim <- ask
+  dim <- gridDims
   experiment (toEdge dim dir)
 
 -- our actual tree business
@@ -64,10 +67,10 @@ visible g = or [visibleFrom dir g | dir <- [North, East, West, South]]
 
 -- and now we implement the grid!
 grid :: Dim -> [a] -> Maybe (Grid a)
-grid dim@(mx, my) items
+grid (mx, my) items
   | length items == mx * my =
     let arr = listArray ((0, 0), (mx - 1, my - 1)) items
-     in Just . EnvT dim . store (arr !) $ (0, 0)
+     in Just . pointer arr $ (0, 0)
   | otherwise = Nothing
 
 -- experiment (toEdge d North)

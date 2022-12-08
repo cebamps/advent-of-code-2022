@@ -31,6 +31,7 @@ library
       array
     , base >=4.15 && <5
     , comonad
+    , comonad-extras
     , containers
     , megaparsec
     , transformers
@@ -51,6 +52,7 @@ executable d01
     , array
     , base >=4.15 && <5
     , comonad
+    , comonad-extras
     , containers
     , megaparsec
     , transformers
@@ -71,6 +73,7 @@ executable d02
     , array
     , base >=4.15 && <5
     , comonad
+    , comonad-extras
     , containers
     , megaparsec
     , transformers
@@ -91,6 +94,7 @@ executable d03
     , array
     , base >=4.15 && <5
     , comonad
+    , comonad-extras
     , containers
     , megaparsec
     , transformers
@@ -111,6 +115,7 @@ executable d04
     , array
     , base >=4.15 && <5
     , comonad
+    , comonad-extras
     , containers
     , megaparsec
     , transformers
@@ -131,6 +136,7 @@ executable d05
     , array
     , base >=4.15 && <5
     , comonad
+    , comonad-extras
     , containers
     , megaparsec
     , transformers
@@ -151,6 +157,7 @@ executable d06
     , array
     , base >=4.15 && <5
     , comonad
+    , comonad-extras
     , containers
     , megaparsec
     , transformers
@@ -171,6 +178,7 @@ executable d07
     , array
     , base >=4.15 && <5
     , comonad
+    , comonad-extras
     , containers
     , megaparsec
     , transformers
@@ -191,6 +199,7 @@ executable d08
     , array
     , base >=4.15 && <5
     , comonad
+    , comonad-extras
     , containers
     , megaparsec
     , transformers
