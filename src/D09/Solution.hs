@@ -39,7 +39,7 @@ follow hp' tp =
 
 move :: Direction -> [Idx] -> [Idx]
 move _ [] = []
-move d (h : ts) = let h' = h |+| unit d in scanl follow h' ts
+move d (h : ts) = let h' = h |+| unit d in scanl' follow h' ts
 
 ---
 
