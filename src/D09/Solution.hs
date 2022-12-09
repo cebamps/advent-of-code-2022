@@ -1,6 +1,7 @@
 module D09.Solution (solve) where
 
 import AOC.Parser
+import Data.List (scanl')
 import qualified Data.Set as S
 import Text.Megaparsec
 import Text.Megaparsec.Char (char, digitChar, eol)
@@ -20,33 +21,39 @@ unit R = (1, 0)
 (|+|) :: Idx -> Idx -> Idx
 (x, y) |+| (x', y') = (x + x', y + y')
 
-newLag :: Direction -> Idx -> Idx
-newLag U (_, 1) = (0, 1)
-newLag U (x, y) = (x, y + 1)
-newLag D (_, -1) = (0, -1)
-newLag D (x, y) = (x, y - 1)
-newLag L (1, _) = (1, 0)
-newLag L (x, y) = (x + 1, y)
-newLag R (-1, _) = (-1, 0)
-newLag R (x, y) = (x - 1, y)
+(|-|) :: Idx -> Idx -> Idx
+(x, y) |-| (x', y') = (x - x', y - y')
+
+-- | computes the new lag of a tail by clamping it back to its allowed range, according to the rules
+lagClamp :: Idx -> Idx
+lagClamp (x, y) | -1 <= x && x <= 1 && -1 <= y && y <= 1 = (x, y)
+lagClamp (x, 0) = (signum x, 0)
+lagClamp (0, y) = (0, signum y)
+lagClamp (x, y) = (x - signum x, y - signum y)
+
+-- | from an updated knot position, update its tail's position
+follow :: Idx -> Idx -> Idx
+follow hp' tp =
+  let lag = tp |-| hp'
+   in hp' |+| lagClamp lag
+
+move :: Direction -> [Idx] -> [Idx]
+move _ [] = []
+move d (h : ts) = let h' = h |+| unit d in scanl follow h' ts
 
 ---
 
-allLags :: Idx -> [Direction] -> [Idx]
-allLags = scanl $ flip newLag
-
-allPos :: Idx -> [Direction] -> [Idx]
-allPos = scanl $ \p d -> p |+| unit d
-
----
+solveAll :: Int -> Input -> IO ()
+solveAll len inp =
+  let inpSteps = concatMap (\(d, n) -> replicate n d) inp
+      pos = scanl' (flip id) (replicate len (0, 0)) (move <$> inpSteps)
+   in print . S.size . S.fromList . fmap last $ pos
 
 solve1 :: Input -> IO ()
-solve1 inp =
-  let inpSteps = concatMap (\(d, n) -> replicate n d) inp
-      lags = allLags (0, 0) inpSteps
-      pos = allPos (0,0) inpSteps
-      tailPos = zipWith (|+|) lags pos
-   in print . S.size . S.fromList $ tailPos
+solve1 = solveAll 2
+
+solve2 :: Input -> IO ()
+solve2 = solveAll 10
 
 ---
 
@@ -64,3 +71,4 @@ solve :: String -> IO ()
 solve s = do
   inp <- parseOrFail inputP "input" s
   solve1 inp
+  solve2 inp
