@@ -1,4 +1,4 @@
-module D00.Solution where
+module D00.Solution (solve) where
 
 import AOC.Parser
 import Text.Megaparsec
