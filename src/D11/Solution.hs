@@ -55,7 +55,7 @@ data Worry
       Int
       -- ^ worry value
   | -- | exact worry score
-    NumericWorry Int
+    ExactWorry Int
   deriving (Show)
 
 -- constructors
@@ -68,15 +68,15 @@ modularWorry mods n =
 modularWorry' :: Int -> Int -> Worry
 modularWorry' xm x = ModularWorry xm (x `mod` xm)
 
-numericWorry :: Int -> Worry
-numericWorry = NumericWorry
+exactWorry :: Int -> Worry
+exactWorry = ExactWorry
 
 -- numerics
 
 wLift :: (Int -> Int -> Int) -> Worry -> Worry -> Worry
-wLift (#) (NumericWorry x) (NumericWorry y) = numericWorry (x # y)
-wLift (#) (ModularWorry xm x) (NumericWorry y) = modularWorry' xm (x # y)
-wLift (#) wx@(NumericWorry _) wy@(ModularWorry _ _) = wLift (flip (#)) wy wx
+wLift (#) (ExactWorry x) (ExactWorry y) = exactWorry (x # y)
+wLift (#) (ModularWorry xm x) (ExactWorry y) = modularWorry' xm (x # y)
+wLift (#) wx@(ExactWorry _) wy@(ModularWorry _ _) = wLift (flip (#)) wy wx
 wLift (#) (ModularWorry xm x) (ModularWorry ym y)
   | xm == ym = modularWorry' xm (x # y)
   | otherwise = error $ "incompatible moduli " <> show (xm, ym)
@@ -88,7 +88,7 @@ wTimes :: Worry -> Worry -> Worry
 wTimes = wLift (*)
 
 wDiv3 :: Worry -> Worry
-wDiv3 (NumericWorry x) = NumericWorry $ x `div` 3
+wDiv3 (ExactWorry x) = ExactWorry $ x `div` 3
 wDiv3 _ = error "cannot divide modular worry score"
 
 -- lookup
@@ -96,7 +96,7 @@ wMod :: Worry -> Int -> Int
 wMod (ModularWorry wm w) n = case wm `mod` n of
   0 -> w `mod` n
   _ -> error $ "incompatible moduli in lookup: " <> show (w, n)
-wMod (NumericWorry w) n = w `mod` n
+wMod (ExactWorry w) n = w `mod` n
 
 ---
 
@@ -176,7 +176,7 @@ replicateM n = foldr (>=>) return . replicate n
 ---
 
 exactMonkeys :: Input -> Monkeys
-exactMonkeys = (fmap . fmap) numericWorry
+exactMonkeys = (fmap . fmap) exactWorry
 
 modularMonkeys :: Input -> Monkeys
 modularMonkeys inp =
@@ -227,7 +227,7 @@ arithP = do
     termP :: Parser (Worry -> Worry) -- reader monad with "old" as context
     termP =
       id <$ string "old"
-        <|> const . numericWorry <$> intP
+        <|> const . exactWorry <$> intP
     operatorP :: Parser (Worry -> Worry -> Worry)
     operatorP =
       wTimes <$ char '*'
