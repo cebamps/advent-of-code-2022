@@ -16,9 +16,9 @@ import Text.Megaparsec.Char (char, digitChar, eol, string)
 
 type Input = IM.IntMap (Monkey Item)
 
-type Item = Int
+type Item = Worry
 
-newtype Op = Op {runOp :: Int -> Int}
+newtype Op = Op {runOp :: Item -> Item}
 
 instance Show Op where show _ = "<operation>"
 
@@ -30,7 +30,7 @@ data Test = Test
   deriving (Eq, Show)
 
 runTest :: Test -> Item -> Int
-runTest t it = case it `mod` tDiv t of
+runTest t it = case it `wMod` tDiv t of
   0 -> tTrue t
   _ -> tFalse t
 
@@ -42,6 +42,39 @@ data Monkey a = Monkey
   }
   deriving (Functor, Foldable, Traversable, Show)
 
+--- worry arithmetic
+
+-- map modulus to worry score
+data Worry = ModularWorry (IM.IntMap Int) | NumericWorry Int deriving (Show)
+
+-- constructors
+modularWorry :: [Int] -> Int -> Worry
+modularWorry mods n = ModularWorry . IM.fromList $ [(m, n `mod` m) | m <- mods]
+
+numericWorry :: Int -> Worry
+numericWorry = NumericWorry
+
+wLift :: (Int -> Int -> Int) -> Worry -> Worry -> Worry
+wLift (#) (NumericWorry x) (NumericWorry y) = NumericWorry (x # y)
+wLift (#) (ModularWorry x) (NumericWorry y) = ModularWorry . IM.mapWithKey (\k z -> (z # y) `mod` k) $ x
+wLift (#) wx@(NumericWorry _) wy@(ModularWorry _) = wLift (flip (#)) wy wx
+wLift (#) (ModularWorry x) (ModularWorry y) = ModularWorry $ IM.intersectionWithKey (\k xv yv -> (xv # yv) `mod` k) x y
+
+wPlus :: Worry -> Worry -> Worry
+wPlus = wLift (+)
+
+wTimes :: Worry -> Worry -> Worry
+wTimes = wLift (*)
+
+-- lookup
+wMod :: Worry -> Int -> Int
+wMod (ModularWorry w) n = case IM.lookup n w of
+  Nothing -> error "cannot compute worry score for an unknown modulus"
+  Just x -> x
+wMod (NumericWorry w) n = w `mod` n
+
+---
+
 throwItems :: Monkey Item -> (IM.IntMap [Item], Monkey Item)
 throwItems m =
   let items = mItems m
@@ -50,11 +83,17 @@ throwItems m =
    in (IM.fromListWith (flip (<>)) processedItems, m')
 
 processItem :: Monkey Item -> Item -> (Int, Item)
-processItem m it = do
+processItem m it =
+  let it' = scoreItem m it
+      target = runTest (mTest m) it'
+   in (target, it')
+
+scoreItem :: Monkey Item -> Item -> Item
+scoreItem m it =
   let afterInspect = runOp (mOp m) it
-  let afterRelief = afterInspect `div` 3
-  let target = runTest (mTest m) afterRelief
-  (target, afterRelief)
+   in -- TODO: restore part 1 logic
+      -- afterRelief = afterInspect `div` 3
+      afterInspect
 
 pushItems :: IM.IntMap [Item] -> Input -> Input
 pushItems itm inp = IM.foldlWithKey' f inp itm
@@ -108,14 +147,20 @@ solve1 inp =
   let (l, _) = replicateM 20 runRound inp
    in print . getSum . product . take 2 . sortOn negate . IM.elems . getInspectionLog $ l
 
+solve2 :: Input -> IO ()
+solve2 inp =
+  let (l, _) = replicateM 10000 runRound inp
+   in print . getSum . product . take 2 . sortOn negate . IM.elems . getInspectionLog $ l
+
 ---
 
 inputP :: Parser Input
 inputP = do
   monkeys <- monkeyP `sepEndBy` eol <* eof
-  return . IM.fromList . fmap (mId &&& id) $ monkeys
+  let moduli = tDiv . mTest <$> monkeys
+  return . IM.fromList . fmap (mId &&& fmap (modularWorry moduli)) $ monkeys
 
-monkeyP :: Parser (Monkey Item)
+monkeyP :: Parser (Monkey Int)
 monkeyP = do
   mId <- string "Monkey " *> intP <* char ':' <* eol
   mItems <- string "  Starting items: " *> itemsP <* eol
@@ -139,14 +184,14 @@ arithP = do
   t2 <- char ' ' *> termP
   return . Op $ op <$> t1 <*> t2
   where
-    termP :: Parser (Int -> Int) -- reader monad with "old" as context
+    termP :: Parser (Worry -> Worry) -- reader monad with "old" as context
     termP =
       id <$ string "old"
-        <|> const <$> intP
-    operatorP :: Parser (Int -> Int -> Int)
+        <|> const . numericWorry <$> intP
+    operatorP :: Parser (Worry -> Worry -> Worry)
     operatorP =
-      (*) <$ char '*'
-        <|> (+) <$ char '+'
+      wTimes <$ char '*'
+        <|> wPlus <$ char '+'
 
 intP :: Parser Int
 intP = read <$> some digitChar
@@ -156,4 +201,5 @@ intP = read <$> some digitChar
 solve :: String -> IO ()
 solve s = do
   inp <- parseOrFail inputP "input" s
-  solve1 inp
+  -- solve1 inp
+  solve2 inp
