@@ -14,7 +14,9 @@ import Data.Monoid (Sum (..))
 import Text.Megaparsec
 import Text.Megaparsec.Char (char, digitChar, eol, string)
 
-type Input = IM.IntMap (Monkey Item)
+type Input = IM.IntMap (Monkey Int)
+
+type Monkeys = IM.IntMap (Monkey Item)
 
 type Item = Worry
 
@@ -48,11 +50,14 @@ data Monkey a = Monkey
 data Worry = ModularWorry (IM.IntMap Int) | NumericWorry Int deriving (Show)
 
 -- constructors
+
 modularWorry :: [Int] -> Int -> Worry
 modularWorry mods n = ModularWorry . IM.fromList $ [(m, n `mod` m) | m <- mods]
 
 numericWorry :: Int -> Worry
 numericWorry = NumericWorry
+
+-- numerics
 
 wLift :: (Int -> Int -> Int) -> Worry -> Worry -> Worry
 wLift (#) (NumericWorry x) (NumericWorry y) = NumericWorry (x # y)
@@ -66,6 +71,10 @@ wPlus = wLift (+)
 wTimes :: Worry -> Worry -> Worry
 wTimes = wLift (*)
 
+wDiv3 :: Worry -> Worry
+wDiv3 (NumericWorry x) = NumericWorry $ x `div` 3
+wDiv3 _ = error "cannot divide modular worry score"
+
 -- lookup
 wMod :: Worry -> Int -> Int
 wMod (ModularWorry w) n = case IM.lookup n w of
@@ -75,46 +84,54 @@ wMod (NumericWorry w) n = w `mod` n
 
 ---
 
-throwItems :: Monkey Item -> (IM.IntMap [Item], Monkey Item)
-throwItems m =
+type ScoreFun = Monkey Item -> Item -> Item
+
+throwItems :: ScoreFun -> Monkey Item -> (IM.IntMap [Item], Monkey Item)
+throwItems scoreItem m =
   let items = mItems m
       m' = m {mItems = []}
-      processedItems = second (: []) . processItem m <$> items
+      processedItems = second (: []) . processItem scoreItem m <$> items
    in (IM.fromListWith (flip (<>)) processedItems, m')
 
-processItem :: Monkey Item -> Item -> (Int, Item)
-processItem m it =
+processItem :: ScoreFun -> Monkey Item -> Item -> (Int, Item)
+processItem scoreItem m it =
   let it' = scoreItem m it
       target = runTest (mTest m) it'
    in (target, it')
 
-scoreItem :: Monkey Item -> Item -> Item
-scoreItem m it =
+-- part 1 -- unsafe with modular worry scores
+scoreItem1 :: ScoreFun
+scoreItem1 m it =
   let afterInspect = runOp (mOp m) it
-   in -- TODO: restore part 1 logic
-      -- afterRelief = afterInspect `div` 3
-      afterInspect
+      afterRelief = wDiv3 afterInspect
+   in afterRelief
 
-pushItems :: IM.IntMap [Item] -> Input -> Input
+-- part 2
+scoreItem2 :: ScoreFun
+scoreItem2 m it =
+  let afterInspect = runOp (mOp m) it
+   in afterInspect
+
+pushItems :: IM.IntMap [Item] -> Monkeys -> Monkeys
 pushItems itm inp = IM.foldlWithKey' f inp itm
   where
-    f :: Input -> Int -> [Item] -> Input
+    f :: Monkeys -> Int -> [Item] -> Monkeys
     f inp' i its = IM.adjust (pushItems1 its) i inp'
     pushItems1 :: [Item] -> Monkey Item -> Monkey Item
     pushItems1 its m = m {mItems = mItems m ++ its}
 
-monkeyTurn :: Int -> Input -> (InspectionLog, Input)
-monkeyTurn i inp = do
+monkeyTurn :: ScoreFun -> Int -> Monkeys -> (InspectionLog, Monkeys)
+monkeyTurn scoreItem i inp = do
   -- update current monkey with throwItems
-  let (thrown, inp') = adjustF throwItems i inp
+  let (thrown, inp') = adjustF (throwItems scoreItem) i inp
   -- update other monkeys
   let inp'' = pushItems thrown inp'
   (logItems i (countThrown thrown), inp'')
   where
     countThrown = sum . fmap length . IM.elems
 
-runRound :: Input -> (InspectionLog, Input)
-runRound inp = foldlM (flip monkeyTurn) inp (IM.keys inp)
+runRound :: ScoreFun -> Monkeys -> (InspectionLog, Monkeys)
+runRound scoreItem inp = foldlM (flip $ monkeyTurn scoreItem) inp (IM.keys inp)
 
 --- logging
 
@@ -142,14 +159,22 @@ replicateM n = foldr (>=>) return . replicate n
 
 ---
 
+exactMonkeys :: Input -> Monkeys
+exactMonkeys = (fmap . fmap) numericWorry
+
+modularMonkeys :: Input -> Monkeys
+modularMonkeys inp =
+  let moduli = tDiv . mTest <$> IM.elems inp
+   in (fmap . fmap) (modularWorry moduli) inp
+
 solve1 :: Input -> IO ()
 solve1 inp =
-  let (l, _) = replicateM 20 runRound inp
+  let (l, _) = replicateM 20 (runRound scoreItem1) (exactMonkeys inp)
    in print . getSum . product . take 2 . sortOn negate . IM.elems . getInspectionLog $ l
 
 solve2 :: Input -> IO ()
 solve2 inp =
-  let (l, _) = replicateM 10000 runRound inp
+  let (l, _) = replicateM 10000 (runRound scoreItem2) (modularMonkeys inp)
    in print . getSum . product . take 2 . sortOn negate . IM.elems . getInspectionLog $ l
 
 ---
@@ -157,8 +182,7 @@ solve2 inp =
 inputP :: Parser Input
 inputP = do
   monkeys <- monkeyP `sepEndBy` eol <* eof
-  let moduli = tDiv . mTest <$> monkeys
-  return . IM.fromList . fmap (mId &&& fmap (modularWorry moduli)) $ monkeys
+  return . IM.fromList . fmap (mId &&& id) $ monkeys
 
 monkeyP :: Parser (Monkey Int)
 monkeyP = do
@@ -201,5 +225,5 @@ intP = read <$> some digitChar
 solve :: String -> IO ()
 solve s = do
   inp <- parseOrFail inputP "input" s
-  -- solve1 inp
+  solve1 inp
   solve2 inp
