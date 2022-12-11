@@ -63,7 +63,10 @@ data Worry
 modularWorry :: [Int] -> Int -> Worry
 modularWorry mods n =
   let m = product (S.fromList mods)
-   in ModularWorry m (n `mod` m)
+   in modularWorry' m n
+
+modularWorry' :: Int -> Int -> Worry
+modularWorry' xm x = ModularWorry xm (x `mod` xm)
 
 numericWorry :: Int -> Worry
 numericWorry = NumericWorry
@@ -71,11 +74,11 @@ numericWorry = NumericWorry
 -- numerics
 
 wLift :: (Int -> Int -> Int) -> Worry -> Worry -> Worry
-wLift (#) (NumericWorry x) (NumericWorry y) = NumericWorry (x # y)
-wLift (#) (ModularWorry xm x) (NumericWorry y) = ModularWorry xm $ (x # y) `mod` xm
+wLift (#) (NumericWorry x) (NumericWorry y) = numericWorry (x # y)
+wLift (#) (ModularWorry xm x) (NumericWorry y) = modularWorry' xm (x # y)
 wLift (#) wx@(NumericWorry _) wy@(ModularWorry _ _) = wLift (flip (#)) wy wx
 wLift (#) (ModularWorry xm x) (ModularWorry ym y)
-  | xm == ym = ModularWorry xm (x # y)
+  | xm == ym = modularWorry' xm (x # y)
   | otherwise = error $ "incompatible moduli " <> show (xm, ym)
 
 wPlus :: Worry -> Worry -> Worry
