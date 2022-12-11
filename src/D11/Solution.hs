@@ -11,6 +11,7 @@ import Data.Foldable (foldlM)
 import qualified Data.IntMap as IM
 import Data.List (sortOn)
 import Data.Monoid (Sum (..))
+import qualified Data.Set as S
 import Text.Megaparsec
 import Text.Megaparsec.Char (char, digitChar, eol, string)
 
@@ -46,13 +47,23 @@ data Monkey a = Monkey
 
 --- worry arithmetic
 
--- map modulus to worry score
-data Worry = ModularWorry (IM.IntMap Int) | NumericWorry Int deriving (Show)
+data Worry
+  = -- | modular worry score
+    ModularWorry
+      Int
+      -- ^ worry modulus
+      Int
+      -- ^ worry value
+  | -- | exact worry score
+    NumericWorry Int
+  deriving (Show)
 
 -- constructors
 
 modularWorry :: [Int] -> Int -> Worry
-modularWorry mods n = ModularWorry . IM.fromList $ [(m, n `mod` m) | m <- mods]
+modularWorry mods n =
+  let m = product (S.fromList mods)
+   in ModularWorry m (n `mod` m)
 
 numericWorry :: Int -> Worry
 numericWorry = NumericWorry
@@ -61,9 +72,11 @@ numericWorry = NumericWorry
 
 wLift :: (Int -> Int -> Int) -> Worry -> Worry -> Worry
 wLift (#) (NumericWorry x) (NumericWorry y) = NumericWorry (x # y)
-wLift (#) (ModularWorry x) (NumericWorry y) = ModularWorry . IM.mapWithKey (\k z -> (z # y) `mod` k) $ x
-wLift (#) wx@(NumericWorry _) wy@(ModularWorry _) = wLift (flip (#)) wy wx
-wLift (#) (ModularWorry x) (ModularWorry y) = ModularWorry $ IM.intersectionWithKey (\k xv yv -> (xv # yv) `mod` k) x y
+wLift (#) (ModularWorry xm x) (NumericWorry y) = ModularWorry xm $ (x # y) `mod` xm
+wLift (#) wx@(NumericWorry _) wy@(ModularWorry _ _) = wLift (flip (#)) wy wx
+wLift (#) (ModularWorry xm x) (ModularWorry ym y)
+  | xm == ym = ModularWorry xm (x # y)
+  | otherwise = error $ "incompatible moduli " <> show (xm, ym)
 
 wPlus :: Worry -> Worry -> Worry
 wPlus = wLift (+)
@@ -77,9 +90,9 @@ wDiv3 _ = error "cannot divide modular worry score"
 
 -- lookup
 wMod :: Worry -> Int -> Int
-wMod (ModularWorry w) n = case IM.lookup n w of
-  Nothing -> error "cannot compute worry score for an unknown modulus"
-  Just x -> x
+wMod (ModularWorry wm w) n = case wm `mod` n of
+  0 -> w `mod` n
+  _ -> error $ "incompatible moduli in lookup: " <> show (w, n)
 wMod (NumericWorry w) n = w `mod` n
 
 ---
