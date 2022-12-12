@@ -82,3 +82,10 @@ eval _ (ETerm x) = x
 eval old (EPlus x y) = eval old x + eval old y
 eval old (ETimes x y) = eval old x * eval old y
 ```
+
+# Day 12: Hill Climbing Algorithm
+
+I did not bother reimplementing Dijkstra, since I already did that last year.
+
+I may have enjoyed implementing a monadic version to support hooking into the
+search, if the problem had required that, but that was not the case here.
