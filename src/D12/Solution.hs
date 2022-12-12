@@ -7,7 +7,7 @@ import qualified Data.Array as A
 import Data.Char (ord)
 import Data.Function (on)
 import Data.List (find)
-import Data.Maybe (fromJust, fromMaybe)
+import Data.Maybe (fromJust, fromMaybe, mapMaybe)
 import Data.Word (Word8)
 import Text.Megaparsec
 import Text.Megaparsec.Char (char, eol)
@@ -55,25 +55,35 @@ adjacency fld p =
 neighbors :: Field -> Idx -> [Idx]
 neighbors fld (x, y) = filter (A.inRange . A.bounds $ fld) [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
 
-navigate :: Field -> Maybe (Cost, [Idx])
-navigate fld =
+navigate :: Field -> Idx -> Maybe (Cost, [Idx])
+navigate fld startIdx =
   let endIdx = findIdxUnsafe (== End) fld
-      startIdx = findIdxUnsafe (== Start) fld
    in dijkstraAssoc
         (adjacency fld)
         (== endIdx)
         startIdx
+
+findIdxUnsafe :: (a -> Bool) -> A.Array Idx a -> Idx
+findIdxUnsafe f = fst . findUnsafe (f . snd) . A.assocs
   where
-    findIdxUnsafe f = fst . findUnsafe (f . snd) . A.assocs
-    findUnsafe f = fromMaybe (error "findUnsafe failed") . find f
+    findUnsafe prd = fromMaybe (error "findUnsafe failed") . find prd
+
+findStartUnsafe :: A.Array Idx Cell -> Idx
+findStartUnsafe = findIdxUnsafe (== Start)
 
 ---
 
 solve1 :: Input -> IO ()
 solve1 inp =
-  case navigate inp of
+  case navigate inp (findStartUnsafe inp) of
     Nothing -> fail "could not find solution"
     Just (steps, _) -> print steps
+
+solve2 :: Input -> IO ()
+solve2 inp = do
+  let starts = fmap fst . filter ((== 0) . elevation . snd) . A.assocs $ inp
+      solutions = mapMaybe (navigate inp) starts
+  print . minimum . fmap fst $ solutions
 
 ---
 
@@ -98,3 +108,4 @@ solve :: String -> IO ()
 solve s = do
   inp <- parseOrFail inputP "input" s
   solve1 inp
+  solve2 inp
