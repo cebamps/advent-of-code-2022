@@ -7,7 +7,7 @@ import qualified Data.Array as A
 import Data.Char (ord)
 import Data.Function (on)
 import Data.List (find)
-import Data.Maybe (fromJust, fromMaybe, mapMaybe)
+import Data.Maybe (fromJust, fromMaybe)
 import Data.Word (Word8)
 import Text.Megaparsec
 import Text.Megaparsec.Char (char, eol)
@@ -19,6 +19,8 @@ data Cell
   | End
   | Other Elevation
   deriving (Eq, Show)
+
+data Direction = Forward | Backward deriving (Eq, Show)
 
 type Idx = (Int, Int)
 
@@ -46,44 +48,49 @@ elevation = \case
 slope :: Field -> Idx -> Idx -> Int
 slope fld = subtract `on` fromIntegral . elevation . (fld A.!)
 
-adjacency :: Field -> Idx -> [(Idx, Cost)]
-adjacency fld p =
+adjacency :: Direction -> Field -> Idx -> [(Idx, Cost)]
+adjacency d fld p =
   fmap (id &&& const 1)
-    . filter ((<= 1) . slope fld p)
+    . filter ((<= 1) . slopeForDir d fld p)
     $ neighbors fld p
+  where
+    slopeForDir Forward = slope
+    slopeForDir Backward = flip . slope
 
 neighbors :: Field -> Idx -> [Idx]
 neighbors fld (x, y) = filter (A.inRange . A.bounds $ fld) [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
 
-navigate :: Field -> Idx -> Maybe (Cost, [Idx])
-navigate fld startIdx =
+navigate :: Direction -> Field -> Maybe (Cost, [Idx])
+navigate d fld =
   let endIdx = findIdxUnsafe (== End) fld
+      startIdx = findIdxUnsafe (== Start) fld
+      start = case d of
+        Forward -> startIdx
+        Backward -> endIdx
+      stop = case d of
+        Forward -> (== endIdx)
+        Backward -> (== 0) . elevation . (fld A.!)
    in dijkstraAssoc
-        (adjacency fld)
-        (== endIdx)
-        startIdx
-
-findIdxUnsafe :: (a -> Bool) -> A.Array Idx a -> Idx
-findIdxUnsafe f = fst . findUnsafe (f . snd) . A.assocs
+        (adjacency d fld)
+        stop
+        start
   where
+    findIdxUnsafe f = fst . findUnsafe (f . snd) . A.assocs
     findUnsafe prd = fromMaybe (error "findUnsafe failed") . find prd
-
-findStartUnsafe :: A.Array Idx Cell -> Idx
-findStartUnsafe = findIdxUnsafe (== Start)
 
 ---
 
-solve1 :: Input -> IO ()
-solve1 inp =
-  case navigate inp (findStartUnsafe inp) of
+solveAny :: Direction -> Field -> IO ()
+solveAny d inp =
+  case navigate d inp of
     Nothing -> fail "could not find solution"
     Just (steps, _) -> print steps
 
+solve1 :: Input -> IO ()
+solve1 = solveAny Forward
+
 solve2 :: Input -> IO ()
-solve2 inp = do
-  let starts = fmap fst . filter ((== 0) . elevation . snd) . A.assocs $ inp
-      solutions = mapMaybe (navigate inp) starts
-  print . minimum . fmap fst $ solutions
+solve2 = solveAny Backward
 
 ---
 
