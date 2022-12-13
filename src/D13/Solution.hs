@@ -1,6 +1,8 @@
 module D13.Solution (solve) where
 
 import AOC.Parser
+import Control.Applicative (liftA2)
+import Data.List (elemIndex, sort)
 import Text.Megaparsec
 import Text.Megaparsec.Char (char, digitChar, eol)
 
@@ -26,6 +28,18 @@ solve1 =
     . filter (uncurry (<=) . snd)
     . zip [(1 :: Int) ..]
 
+solve2 :: Input -> IO ()
+solve2 inp =
+  let loc1 = singleton . singleton . Value $ 2
+      loc2 = singleton . singleton . Value $ 6
+      orderedPackets = sort . (loc1 :) . (loc2 :) . concatMap (\(x, y) -> [x, y]) $ inp
+   in print $ liftA2 (*) (findIdx loc1 orderedPackets) (findIdx loc2 orderedPackets)
+  where
+    singleton :: Packet a -> Packet a
+    singleton = Node . (: [])
+    findIdx :: Eq a => a -> [a] -> Maybe Int
+    findIdx p ps = (1 +) <$> elemIndex p ps
+
 ---
 
 inputP :: Parser Input
@@ -44,3 +58,4 @@ solve :: String -> IO ()
 solve s = do
   inp <- parseOrFail inputP "input" s
   solve1 inp
+  solve2 inp
