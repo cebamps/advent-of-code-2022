@@ -2,7 +2,7 @@ module D13.Solution (solve) where
 
 import AOC.Parser
 import Control.Applicative (liftA2)
-import Data.List (elemIndex, sort)
+import Data.List (elemIndex, findIndices, sort)
 import Text.Megaparsec
 import Text.Megaparsec.Char (char, digitChar, eol)
 
@@ -21,12 +21,7 @@ instance Ord a => Ord (Packet a) where
 ---
 
 solve1 :: Input -> IO ()
-solve1 =
-  print
-    . sum
-    . fmap fst
-    . filter (uncurry (<=) . snd)
-    . zip [(1 :: Int) ..]
+solve1 = print . sum . fmap (+ 1) . findIndices (uncurry (<=))
 
 solve2 :: Input -> IO ()
 solve2 inp =
