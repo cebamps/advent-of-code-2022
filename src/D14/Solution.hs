@@ -6,6 +6,7 @@ import Data.Maybe (fromMaybe, isJust)
 import Data.Semigroup (Max (..), Min (..))
 import Data.Sequence (Seq (..), (><))
 import qualified Data.Sequence as Seq
+import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Tuple (swap)
 import Text.Megaparsec hiding (State)
@@ -19,7 +20,7 @@ newtype Idx = Idx {getIdx :: (Int, Int)} deriving (Eq, Show)
 instance Ord Idx where
   Idx x `compare` Idx y = swap x `compare` swap y
 
-type Field = S.Set Idx
+type Field = Set Idx
 
 data Rule = Part1 | Part2 deriving (Show)
 
