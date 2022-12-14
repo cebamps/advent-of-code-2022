@@ -9,7 +9,7 @@ import Data.Tuple (swap)
 import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Char (char, digitChar, eol, string)
 
-type Input = State
+type Input = Field
 
 newtype Idx = Idx {getIdx :: (Int, Int)} deriving (Eq, Show)
 
@@ -17,11 +17,17 @@ newtype Idx = Idx {getIdx :: (Int, Int)} deriving (Eq, Show)
 instance Ord Idx where
   Idx x `compare` Idx y = swap x `compare` swap y
 
-newtype State = State
-  { sSet :: S.Set Idx
-  -- TODO optimization: store the path taken by the previous unit
+type Field = S.Set Idx
+
+data Rule = Part1 | Part2 deriving (Show)
+
+data State = State
+  { sField :: Field,
+    sRule :: Rule,
+    sYmax :: Int
+    -- TODO optimization: store the path taken by the previous unit
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 data Trajectory = Trajectory
   { tPath :: [Idx],
@@ -34,34 +40,44 @@ data Trajectory = Trajectory
 source :: Idx
 source = Idx (500, 0)
 
+state :: Rule -> Field -> State
+state r f = let Idx (_, ymax) = S.findMax f in State f r ymax
+
+insert :: Idx -> State -> State
+insert idx s = s {sField = S.insert idx $ sField s}
+
 nextIdx :: Idx -> [Idx]
 nextIdx (Idx (x, y)) = [Idx (x', y') | let y' = y + 1, x' <- [x, x - 1, x + 1]]
 
 nextState :: State -> (Trajectory, State)
-nextState state =
-  let t@Trajectory {tSettled = settled} = findTrajectory state
-      state' = maybe id insert settled state
-   in (t, state')
-  where
-    insert idx s = s {sSet = S.insert idx $ sSet s}
+nextState s =
+  let t@Trajectory {tSettled = settled} = findTrajectory s
+      s' = maybe id insert settled s
+   in (t, s')
 
 findTrajectory :: State -> Trajectory
-findTrajectory s@State {sSet = set} =
+findTrajectory s =
   let -- possibly infinite, we can check that with a function after
-      path =
-        source
-          : unfoldr
-            ( \idx -> case filter (`S.notMember` set) (nextIdx idx) of
+      path = unfoldr
+            ( \idx -> case nextIdx' s idx of
                 [] -> Nothing -- settled
                 idx' : _ -> Just (idx', idx')
             )
             source
    in case break (oob s) path of
-        (p, []) -> Trajectory p $ Just (last p)
-        (p, _) -> Trajectory p Nothing
+        ([], _) -> Trajectory [] Nothing -- filled up
+        (p, []) -> Trajectory p $ Just (last p) -- settled
+        (p, _) -> Trajectory p Nothing -- fell into the abyss
+  where
+    nextIdx' st@State {sRule = Part1} i = unoccupied st $ nextIdx i
+    nextIdx' st@State {sRule = Part2} i@(Idx (_, y))
+      | y < sYmax st + 1 = unoccupied st $ nextIdx i
+      | otherwise = []
+    unoccupied State {sField = fld} = filter (`S.notMember` fld)
 
 oob :: State -> Idx -> Bool
-oob s i = S.findMax (sSet s) < i
+oob State {sRule = Part1, sYmax = ym} (Idx (_, y)) = ym < y
+oob State {sRule = Part2} _ = False
 
 -- debug
 
@@ -72,7 +88,7 @@ _draw st =
         : "---"
         : [ [ c
               | x <- [xmin .. xmax],
-                let c = if Idx (x, y) `S.member` sSet st then 'x' else ' '
+                let c = if Idx (x, y) `S.member` sField st then 'x' else ' '
             ]
             | y <- [ymin .. ymax]
           ]
@@ -80,20 +96,30 @@ _draw st =
 bounds :: State -> (Idx, Idx)
 bounds st =
   let Just (Min xmin, Max xmax, Min ymin, Max ymax) =
-        S.foldr' ((<>) . (\(Idx (x, y)) -> Just (Min x, Max x, Min y, Max y))) Nothing $ sSet st
+        S.foldr' ((<>) . (\(Idx (x, y)) -> Just (Min x, Max x, Min y, Max y))) Nothing $ sField st
    in (Idx (xmin, ymin), Idx (xmax, ymax))
 
 ---
 
+solveAny :: Rule -> Input -> IO ()
+solveAny r inp =
+  let initState = state r inp
+      history = takeWhile (isJust . tSettled . fst) $ iterate (nextState . snd) (nextState initState)
+      extra = case r of
+        Part1 -> 0
+        Part2 -> 1 -- the state update does not settle sand at the source
+   in print . (+ extra) . length $ history
+
 solve1 :: Input -> IO ()
-solve1 inp =
-  let history = takeWhile (isJust . tSettled . fst) $ iterate (nextState . snd) (nextState inp)
-   in print . length $ history
+solve1 = solveAny Part1
+
+solve2 :: Input -> IO ()
+solve2 = solveAny Part2
 
 ---
 
 inputP :: Parser Input
-inputP = State . S.fromList <$> wallsP <* eof
+inputP = S.fromList <$> wallsP <* eof
 
 wallsP :: Parser [Idx]
 wallsP = concatMap expand <$> cornersP `sepEndBy1` eol
@@ -120,3 +146,4 @@ solve :: String -> IO ()
 solve s = do
   inp <- parseOrFail inputP "input" s
   solve1 inp
+  solve2 inp
