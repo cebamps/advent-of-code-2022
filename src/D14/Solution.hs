@@ -101,26 +101,6 @@ oob :: State -> Idx -> Bool
 oob State {sRule = Part1, sYmax = ym} (Idx (_, y)) = ym < y
 oob State {sRule = Part2} _ = False
 
--- debug
-
-_draw :: State -> [String]
-_draw st =
-  let (Idx (xmin, ymin), Idx (xmax, ymax)) = bounds st
-   in show ((xmin, ymin), (xmax, ymax))
-        : "---"
-        : [ [ c
-              | x <- [xmin .. xmax],
-                let c = if Idx (x, y) `S.member` sField st then 'x' else ' '
-            ]
-            | y <- [ymin .. ymax]
-          ]
-
-bounds :: State -> (Idx, Idx)
-bounds st =
-  let Just (Min xmin, Max xmax, Min ymin, Max ymax) =
-        S.foldr' ((<>) . (\(Idx (x, y)) -> Just (Min x, Max x, Min y, Max y))) Nothing $ sField st
-   in (Idx (xmin, ymin), Idx (xmax, ymax))
-
 ---
 
 solveAny :: Rule -> Input -> IO ()
@@ -169,3 +149,23 @@ solve s = do
   inp <- parseOrFail inputP "input" s
   solve1 inp
   solve2 inp
+
+--- debug
+
+_draw :: State -> [String]
+_draw st =
+  let (Idx (xmin, ymin), Idx (xmax, ymax)) = bounds st
+   in show ((xmin, ymin), (xmax, ymax))
+        : "---"
+        : [ [ c
+              | x <- [xmin .. xmax],
+                let c = if Idx (x, y) `S.member` sField st then 'x' else ' '
+            ]
+            | y <- [ymin .. ymax]
+          ]
+
+bounds :: State -> (Idx, Idx)
+bounds st =
+  let Just (Min xmin, Max xmax, Min ymin, Max ymax) =
+        S.foldr' ((<>) . (\(Idx (x, y)) -> Just (Min x, Max x, Min y, Max y))) Nothing $ sField st
+   in (Idx (xmin, ymin), Idx (xmax, ymax))
