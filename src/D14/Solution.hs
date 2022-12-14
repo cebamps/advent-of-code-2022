@@ -2,8 +2,10 @@ module D14.Solution (solve) where
 
 import AOC.Parser
 import Data.List (unfoldr)
-import Data.Maybe (isJust)
+import Data.Maybe (fromMaybe, isJust)
 import Data.Semigroup (Max (..), Min (..))
+import Data.Sequence (Seq (..), (><))
+import qualified Data.Sequence as Seq
 import qualified Data.Set as S
 import Data.Tuple (swap)
 import Text.Megaparsec hiding (State)
@@ -24,13 +26,15 @@ data Rule = Part1 | Part2 deriving (Show)
 data State = State
   { sField :: Field,
     sRule :: Rule,
-    sYmax :: Int
-    -- TODO optimization: store the path taken by the previous unit
+    sYmax :: Int,
+    sPrevTrajectory :: Maybe Trajectory
   }
   deriving (Show)
 
 data Trajectory = Trajectory
-  { tPath :: [Idx],
+  { -- | Ordered sequence of indices, excluding the source, and including the
+    -- last index in bounds.
+    tPath :: Seq Idx,
     -- | If sand settled somewhere, this is its index. Otherwise, it sank into
     -- the abyss.
     tSettled :: Maybe Idx
@@ -41,7 +45,7 @@ source :: Idx
 source = Idx (500, 0)
 
 state :: Rule -> Field -> State
-state r f = let Idx (_, ymax) = S.findMax f in State f r ymax
+state r f = let Idx (_, ymax) = S.findMax f in State f r ymax Nothing
 
 insert :: Idx -> State -> State
 insert idx s = s {sField = S.insert idx $ sField s}
@@ -57,23 +61,41 @@ nextState s =
 
 findTrajectory :: State -> Trajectory
 findTrajectory s =
-  let -- possibly infinite, we can check that with a function after
-      path = unfoldr
-            ( \idx -> case nextIdx' s idx of
-                [] -> Nothing -- settled
-                idx' : _ -> Just (idx', idx')
-            )
-            source
-   in case break (oob s) path of
-        ([], _) -> Trajectory [] Nothing -- filled up
-        (p, []) -> Trajectory p $ Just (last p) -- settled
-        (p, _) -> Trajectory p Nothing -- fell into the abyss
+  let -- Shortcut: get the starting point and the head of the trajectory from
+      -- the previous trajectory.
+      (trajHead, start) = fromMaybe (Empty, source) $ sPrevTrajectory s >>= trajectoryShortcut
+      -- Split the in-bounds and (possibly infinite) out-of-bounds part of the
+      -- tail of the trajectory.
+      (pIn, pOut) = break (oob s) $ dfsFirst (nextIdx' s) start
+      -- Reassemble the new path.
+      path' = trajHead >< Seq.fromList pIn
+   in -- Finally, a case analysis of the different outcomes
+      case (Seq.null path', null pOut) of
+        (False, True) -> Trajectory path' $ Just (last pIn) -- settled
+        (True, _) -> Trajectory path' Nothing -- filled up
+        (False, False) -> Trajectory path' Nothing -- fell into the abyss
   where
     nextIdx' st@State {sRule = Part1} i = unoccupied st $ nextIdx i
     nextIdx' st@State {sRule = Part2} i@(Idx (_, y))
       | y < sYmax st + 1 = unoccupied st $ nextIdx i
       | otherwise = []
     unoccupied State {sField = fld} = filter (`S.notMember` fld)
+
+-- | extract the last valid part of the trajectory path before the particle
+-- settled
+trajectoryShortcut :: Trajectory -> Maybe (Seq Idx, Idx)
+trajectoryShortcut trj = case tPath trj of
+  h :|> t :|> _ -> Just (h, t)
+  _ -> Nothing
+
+-- | first branch of a depth-first search
+dfsFirst :: (a -> [a]) -> a -> [a]
+dfsFirst next =
+  unfoldr
+    ( \idx -> case next idx of
+        [] -> Nothing -- settled
+        idx' : _ -> Just (idx', idx')
+    )
 
 oob :: State -> Idx -> Bool
 oob State {sRule = Part1, sYmax = ym} (Idx (_, y)) = ym < y
