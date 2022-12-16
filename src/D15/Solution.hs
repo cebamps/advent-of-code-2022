@@ -40,8 +40,8 @@ insertRange r@(xmin, xmax) (IntRanges set) =
       | otherwise = glue $ (x1, max x2 x4) : rs
     glue rs = rs
 
-removePoint :: Int -> IntRanges -> IntRanges
-removePoint xd (IntRanges set) =
+deleteInRange :: Int -> IntRanges -> IntRanges
+deleteInRange xd (IntRanges set) =
   let (left, leftC) = S.spanAntitone (\(_, x) -> x < xd) set
       (mid, right) = S.spanAntitone (\(x, _) -> x <= xd) leftC
       mid' = S.fromList . concatMap (cut xd) . S.toList $ mid
@@ -69,7 +69,7 @@ xSeenRange y s =
 xSeenRanges, xSeenRangesNoBeacons :: Int -> [Sensor] -> IntRanges
 xSeenRangesNoBeacons y ss =
   foldr
-    removePoint
+    deleteInRange
     (xSeenRanges y ss)
     [bx | s <- ss, let (bx, by) = sBeacon s, y == by]
 xSeenRanges y = foldr insertRange emptyRanges . mapMaybe (xSeenRange y)
@@ -112,7 +112,6 @@ solve2 inp =
         then 20
         else 4000000
     ymax = xmax
-
 
 ---
 
