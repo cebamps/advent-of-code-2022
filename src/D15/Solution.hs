@@ -66,15 +66,26 @@ xSeenRange y s =
         then Just (sx - w, sx + w)
         else Nothing
 
-xSeenRanges :: Int -> [Sensor] -> IntRanges
-xSeenRanges y ss =
-  flip (foldr removePoint) [bx | s <- ss, let (bx, by) = sBeacon s, y == by]
-    . foldr insertRange emptyRanges
-    . mapMaybe (xSeenRange y)
-    $ ss
+xSeenRanges, xSeenRangesNoBeacons :: Int -> [Sensor] -> IntRanges
+xSeenRangesNoBeacons y ss =
+  foldr
+    removePoint
+    (xSeenRanges y ss)
+    [bx | s <- ss, let (bx, by) = sBeacon s, y == by]
+xSeenRanges y = foldr insertRange emptyRanges . mapMaybe (xSeenRange y)
 
 rangeSize :: IntRanges -> Int
 rangeSize = S.foldr' (\(x1, x2) s -> s + x2 - x1 + 1) 0 . getIntRanges
+
+findNotInRange :: Range -> IntRanges -> Maybe Int
+findNotInRange (xmin, xmax) (IntRanges set) =
+  -- find the interval that covers our minimum or any later point
+  case S.lookupMin $ S.dropWhileAntitone (\(_, x) -> x < xmin) set of
+    Nothing -> Just xmin
+    Just (x1, x2)
+      | xmin < x1 -> Just xmin
+      | x2 < xmax -> Just $ x2 + 1
+      | otherwise -> Nothing
 
 ---
 
@@ -82,13 +93,26 @@ isTest :: Input -> Bool
 isTest (s : _) = s == Sensor (2, 18) (-2, 15)
 isTest _ = False
 
-yFor :: Input -> Int
-yFor inp
-  | isTest inp = 10
-  | otherwise = 2000000
-
 solve1 :: Input -> IO ()
-solve1 inp = print . rangeSize . xSeenRanges (yFor inp) $ inp
+solve1 inp = print . rangeSize . xSeenRangesNoBeacons y $ inp
+  where
+    y =
+      if isTest inp
+        then 10
+        else 2000000
+
+solve2 :: Input -> IO ()
+solve2 inp =
+  let rows = [(y, findNotInRange (0, xmax) r) | y <- [0 .. ymax], let r = xSeenRanges y inp]
+      (by, bx) = head $ mapMaybe sequence rows
+   in print $ 4000000 * bx + by
+  where
+    xmax =
+      if isTest inp
+        then 20
+        else 4000000
+    ymax = xmax
+
 
 ---
 
@@ -110,3 +134,4 @@ solve :: String -> IO ()
 solve s = do
   inp <- parseOrFail inputP "input" s
   solve1 inp
+  solve2 inp
