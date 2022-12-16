@@ -89,3 +89,20 @@ I did not bother reimplementing Dijkstra, since I already did that last year.
 
 I may have enjoyed implementing a monadic version to support hooking into the
 search, if the problem had required that, but that was not the case here.
+
+# Day 14: Regolith Reservoir
+
+The rules that give the next coordinates for a unit of sand to fall into makes
+the problem look very much like it wants to be expressed as a graph walk.
+
+The optimization I gave for part 2 combines a graph state with a path into the
+graph. Would a zipper provide a nice interface to clean up the solution? The
+primitive operations are essentially "walk to the first child", "peek
+coordinate", "update current coordinate", "go back to parent". Those are all
+pretty abstract.
+
+Another way to view things is that the problem is somewhat decomposable: up to
+a certain point, we can get to the same state by shifting the source to any one
+of the next coordinates of the path taken by the sand. Once sand settles
+immediately, we have to backtrack to an earlier source. Same idea, but
+different angle and closer to the intuition of the problem.
