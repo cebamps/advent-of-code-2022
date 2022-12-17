@@ -6,7 +6,7 @@ import Control.Arrow (Arrow (first), (&&&))
 import Data.Function (on)
 import Data.Functor ((<&>))
 import Data.Functor.Compose (Compose (..))
-import Data.List (foldl', groupBy, sortOn)
+import Data.List (foldl', groupBy, sort, sortOn)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Set (Set)
@@ -94,11 +94,11 @@ findPath finalTime initState inp = first toObjective <$> dijkstra next cost ((==
     next :: SearchState -> [SearchState]
     next s =
       case [ SearchState {sPos = poss', sT = t', sOpen = open'}
-             | (dt, node', idx, poss') <- nextMoves (sPos s) keep,
+             | (dt, node', _, possUnordered') <- nextMoves (sPos s) keep,
                let t' = sT s + dt,
                let open' = S.insert node' $ sOpen s,
-               t' <= finalTime,
-               sT s > 0 || idx == 0 -- break the symmetry
+               let poss' = sort possUnordered', -- distinguishing the movers would double the search space
+               t' <= finalTime
            ] of
         [] -> [s {sT = finalTime}] -- no time to get to another valve, stay put
         x -> x
