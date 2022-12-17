@@ -112,18 +112,33 @@ findPath finalTime initState inp = first toObjective <$> dijkstra next cost ((==
     nextMoves :: [Position] -> (Name -> Bool) -> [(Int, Name, Int, [Position])]
     nextMoves pos keep = prune . concatMap getCompose $ mapsEach (nextMovesOne keep) (zip [0 ..] pos)
       where
-        -- for moves of different movers that take the same time, only keep one
-        -- to avoid exponential branching
+        -- For moves of different movers that take the same time, we avoid
+        -- combinatorial explosion by pruning the tree. If there is a pair of
+        -- moves that take the same time and could be done in either order
+        -- (e.g., I move to valve A in time 3 and the elephant moves to valve C
+        -- in time 3), we keep only one of them.
+        --
+        -- Note that if the target node is the same for both but they arrive
+        -- from different destinations, then we have to keep the two moves
+        -- because they are not exchangeable (we can only open a valve once).
+        --
+        -- (This last point does not seem to make a difference with my problem
+        -- input.)
+        --
+        -- On implementation, this approximately halved the search time.
         prune :: [(Int, Name, Int, [Position])] -> [(Int, Name, Int, [Position])]
         prune mvs =
           [ mv
             | byTime <- groupOn dt mvs,
-              mv <- filter (\x -> idx x == idx (head byTime)) byTime
+              mv <- byTime,
+              idx mv == idx (head byTime) || any (\mv' -> dest mv' == dest mv && idx mv' /= idx mv) byTime
           ]
         dt (x, _, _, _) = x
+        dest (_, x, _, _) = x
         idx (_, _, x, _) = x
         groupOnSorted f = groupBy ((==) `on` f)
         groupOn f = groupOnSorted f . sortOn f
+
     nextMovesOne ::
       (Name -> Bool) ->
       (Int, Position) ->
