@@ -98,7 +98,7 @@ findPath inp = first toObjective <$> dijkstra next cost ((== finalTime) . sT) in
     -- The relieved pressure as stated in the problem. Valves are only ever
     -- opened on the time right before a destination node.
     objective :: SearchState -> SearchState -> Int
-    objective s _ = sum $ vRate <$> M.restrictKeys inp (sOpen s)
+    objective s s' = (sT s' - sT s) * sum (vRate <$> M.restrictKeys inp (sOpen s))
 
     -- Adjust the objective to maximize into a nonnegative cost to minimize.
     cost s s' = (sT s' - sT s) * capacity - objective s s'
@@ -112,7 +112,7 @@ findPath inp = first toObjective <$> dijkstra next cost ((== finalTime) . sT) in
 solve1 :: Input -> IO ()
 solve1 inp = case findPath inp of
   Nothing -> putStrLn "solution not found"
-  Just (p,_) -> print p
+  Just (p, _) -> print p
 
 ---
 
