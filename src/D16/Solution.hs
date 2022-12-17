@@ -94,10 +94,11 @@ findPath finalTime initState inp = first toObjective <$> dijkstra next cost ((==
     next :: SearchState -> [SearchState]
     next s =
       case [ SearchState {sPos = poss', sT = t', sOpen = open'}
-             | (dt, node', _, poss') <- nextMoves (sPos s) keep,
+             | (dt, node', idx, poss') <- nextMoves (sPos s) keep,
                let t' = sT s + dt,
                let open' = S.insert node' $ sOpen s,
-               t' <= finalTime
+               t' <= finalTime,
+               sT s > 0 || idx == 0 -- break the symmetry
            ] of
         [] -> [s {sT = finalTime}] -- no time to get to another valve, stay put
         x -> x
