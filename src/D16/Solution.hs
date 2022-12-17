@@ -48,21 +48,21 @@ distances :: Input -> Distances
 distances inp =
   M.fromList
     [ (from, d)
-      | from <- kept,
-        let d = M.filterWithKey (\to n -> n /= 0 && to `elem` kept) $ distances1 inp from
+      | from <- S.toList kept,
+        let d = flip M.restrictKeys kept $ distances1 inp from
     ]
   where
     keep v = vRate v /= 0 || vId v == "AA"
-    kept = fmap vId . filter keep $ M.elems inp
+    kept = S.fromList . fmap vId . filter keep $ M.elems inp
 
 distances1 :: Input -> Name -> Map Name Int
 distances1 inp = distances1' next
   where
     next x = vNeighbors $ inp M.! x
 
--- compute distances using a breadth-first walk
+-- compute distances using a breadth-first walk, including the starting point
 distances1' :: Ord a => (a -> [a]) -> a -> Map a Int
-distances1' next start = go 0 (M.singleton start 0) [start]
+distances1' next start = go 0 M.empty [start]
   where
     go _ seen [] = seen
     go n seen xs =
