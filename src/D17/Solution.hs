@@ -4,7 +4,7 @@ module D17.Solution (solve) where
 
 import AOC.Parser
 import Control.Monad (replicateM_, unless)
-import Control.Monad.Trans.State (State, evalState, gets, modify)
+import Control.Monad.Trans.State.Strict (State, evalState, gets, modify')
 import Data.Array (Array)
 import qualified Data.Array as A
 import Data.List (intercalate)
@@ -71,11 +71,11 @@ height fld = (\(Idx (_, y)) -> y + 1) <$> S.lookupMax fld
 ---
 
 data GameState = GameState
-  { sJetTime :: Int,
-    sPieceCount :: Int,
-    sJets :: Input,
-    sField :: Field,
-    sPiece :: Maybe Piece
+  { sJetTime :: !Int,
+    sPieceCount :: !Int,
+    sJets :: !Input,
+    sField :: !Field,
+    sPiece :: !(Maybe Piece)
   }
   deriving (Show)
 
@@ -92,7 +92,7 @@ initPiece = do
 
   case mp of
     Nothing -> do
-      modify $ \s ->
+      modify' $ \s ->
         s
           { sPieceCount = sPieceCount s + 1,
             sPiece = Just p'
@@ -107,7 +107,7 @@ runMove' ofs = do
   fld <- gets sField
 
   let (coll, p') = movePiece ofs fld p
-  unless coll $ modify $ \s -> s {sPiece = Just p'}
+  unless coll $ modify' $ \s -> s {sPiece = Just p'}
 
   return coll
 
@@ -115,7 +115,7 @@ runJet :: St Bool
 runJet = do
   t <- gets sJetTime
   jet <- gets $ (!@ t) . sJets
-  modify $ \s -> s {sJetTime = t + 1}
+  modify' $ \s -> s {sJetTime = t + 1}
   runMove' $ jetDir jet
   where
     jetDir L = Idx (-1, 0)
@@ -130,7 +130,7 @@ runRound = runJet >> runGravity
 placePiece :: St ()
 placePiece = do
   loop
-  modify $ \s ->
+  modify' $ \s ->
     s
       { sPiece = Nothing,
         -- use of a partial function
