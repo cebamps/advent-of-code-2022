@@ -3,11 +3,12 @@
 module D17.Solution (solve) where
 
 import AOC.Parser
-import Control.Monad (replicateM_, unless)
+import Control.Monad (replicateM_, unless, when)
 import Control.Monad.Trans.State.Strict (State, evalState, gets, modify')
 import Data.Array (Array)
 import qualified Data.Array as A
-import Data.List (intercalate)
+import Data.Function (on)
+import Data.List (find, groupBy, intercalate)
 import Data.Maybe (fromJust, fromMaybe)
 import Data.Set (Set)
 import qualified Data.Set as S
@@ -68,6 +69,27 @@ collides f p =
 height :: Field -> Maybe Int
 height fld = (\(Idx (_, y)) -> y + 1) <$> S.lookupMax fld
 
+-- Finds the highest completed row and moves the field down to make it the new
+-- floor (y = -1). Returns the offset applied.
+cleanField :: Field -> (Int, Field)
+cleanField fld =
+  let newFloor =
+        fmap (snd . head)
+          . find ((== 7) . length)
+          . groupBy ((==) `on` snd)
+          . fmap getIdx
+          . S.toDescList
+          $ fld
+   in case newFloor of
+        Nothing -> (0, fld)
+        Just y -> (y + 1, setFloor y fld)
+  where
+    setFloor :: Int -> Field -> Field
+    setFloor y =
+      S.mapMonotonic (|-| Idx (0, y + 1))
+        . snd
+        . S.split (Idx (7, y))
+
 ---
 
 data GameState = GameState
@@ -75,12 +97,13 @@ data GameState = GameState
     sPieceCount :: !Int,
     sJets :: !Input,
     sField :: !Field,
-    sPiece :: !(Maybe Piece)
+    sPiece :: !(Maybe Piece),
+    sYOffset :: !Int
   }
   deriving (Show)
 
 initState :: Input -> GameState
-initState j = GameState 0 0 j S.empty Nothing
+initState j = GameState 0 0 j S.empty Nothing 0
 
 type St = State GameState
 
@@ -111,6 +134,18 @@ runMove' ofs = do
 
   return coll
 
+-- apply only when there is no piece in the field, as this does not offset the piece itself
+clean :: St ()
+clean = do
+  n <- gets sPieceCount
+  when (n `mod` 1000 == 0) $ do
+    modify' $ \s ->
+      let (ofs, fld') = cleanField $ sField s
+       in s
+            { sField = fld',
+              sYOffset = sYOffset s + ofs
+            }
+
 runJet :: St Bool
 runJet = do
   t <- gets sJetTime
@@ -136,6 +171,7 @@ placePiece = do
         -- use of a partial function
         sField = fromJust (sPiece s) `S.union` sField s
       }
+  clean
   where
     loop = do
       finished <- runRound
@@ -159,10 +195,13 @@ dump s =
 
 ---
 
+solveAny :: Int -> Input -> IO ()
+solveAny n inp = print . flip evalState (initState inp) $ do
+  replicateM_ n placePiece
+  gets $ \s -> fromMaybe 0 (height $ sField s) + sYOffset s
+
 solve1 :: Input -> IO ()
-solve1 inp = print . flip evalState (initState inp) $ do
-  replicateM_ 2022 placePiece
-  gets $ height . sField
+solve1 = solveAny 2022
 
 ---
 
