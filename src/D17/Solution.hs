@@ -16,7 +16,11 @@ import Text.Megaparsec.Char (char, eol)
 
 type Input = Array Int Jet
 
-type Idx = (Int, Int)
+newtype Idx = Idx {getIdx :: (Int, Int)} deriving (Eq)
+
+instance Show Idx where show (Idx x) = show x
+
+instance Ord Idx where compare (Idx (x1, y1)) (Idx (x2, y2)) = compare (y1, x1) (y2, x2)
 
 type Piece = Set Idx
 
@@ -27,7 +31,7 @@ data Jet = L | R deriving (Eq, Show)
 -- aligned on the bottom left corner, to make the initial offset the same for all
 pieces :: Array Int Piece
 pieces =
-  A.listArray (0, 4) . fmap S.fromList $
+  A.listArray (0, 4) . fmap (S.fromList . fmap Idx) $
     [ [(0, 0), (1, 0), (2, 0), (3, 0)], -- -
       [(1, 0), (0, 1), (1, 1), (2, 1), (1, 2)], -- +
       [(0, 0), (1, 0), (2, 0), (2, 1), (2, 2)], -- J
@@ -43,8 +47,8 @@ a !@ i =
    in a A.! i'
 
 (|+|), (|-|) :: Idx -> Idx -> Idx
-(x1, y1) |+| (x2, y2) = (x1 + x2, y1 + y2)
-(x1, y1) |-| (x2, y2) = (x1 - x2, y1 - y2)
+Idx (x1, y1) |+| Idx (x2, y2) = Idx (x1 + x2, y1 + y2)
+Idx (x1, y1) |-| Idx (x2, y2) = Idx (x1 - x2, y1 - y2)
 
 offsetPiece :: Idx -> Piece -> Piece
 offsetPiece ofs = S.mapMonotonic (|+| ofs)
@@ -58,13 +62,11 @@ movePiece ofs f p =
 collides :: Field -> Piece -> Bool
 collides f p =
   let placedRocks = not $ S.disjoint f p
-      oob = any (\(x, y) -> x < 0 || x > 6 || y < 0) p
+      oob = any (\(Idx (x, y)) -> x < 0 || x > 6 || y < 0) p
    in oob || placedRocks
 
 height :: Field -> Maybe Int
-height fld = case snd <$> S.toList fld of
-  [] -> Nothing
-  ys -> Just $ 1 + maximum ys
+height fld = (\(Idx (_, y)) -> y + 1) <$> S.lookupMax fld
 
 ---
 
@@ -85,7 +87,7 @@ type St = State GameState
 initPiece :: St Piece
 initPiece = do
   h <- gets $ fromMaybe 0 . height . sField
-  p' <- gets $ offsetPiece (2, h + 3) . (pieces !@) . sPieceCount
+  p' <- gets $ offsetPiece (Idx (2, h + 3)) . (pieces !@) . sPieceCount
   mp <- gets sPiece
 
   case mp of
@@ -116,11 +118,11 @@ runJet = do
   modify $ \s -> s {sJetTime = t + 1}
   runMove' $ jetDir jet
   where
-    jetDir L = (-1, 0)
-    jetDir R = (1, 0)
+    jetDir L = Idx (-1, 0)
+    jetDir R = Idx (1, 0)
 
 runGravity :: St Bool
-runGravity = runMove' (0, -1)
+runGravity = runMove' $ Idx (0, -1)
 
 runRound :: St Bool
 runRound = runJet >> runGravity
@@ -148,8 +150,8 @@ dump s =
    in intercalate "\n" $
         [ [ if inF then '#' else if inP then 'o' else ' '
             | x <- [xmin .. xmax],
-              let inF = S.member (x, y) fld,
-              let inP = S.member (x, y) p
+              let inF = S.member (Idx (x, y)) fld,
+              let inP = S.member (Idx (x, y)) p
           ]
           | y <- [ymax, ymax - 1 .. ymin]
         ]
