@@ -27,6 +27,7 @@ library
       D14.Solution
       D15.Solution
       D16.Solution
+      D17.Cycle
       D17.Solution
   other-modules:
       Paths_advent_of_code_y2022

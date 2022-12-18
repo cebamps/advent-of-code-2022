@@ -1,10 +1,9 @@
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
-
 module D17.Solution (solve) where
 
 import AOC.Parser
-import Control.Monad (replicateM_, unless, when)
-import Control.Monad.Trans.State.Strict (State, evalState, gets, modify')
+import Control.Monad (replicateM_, unless)
+import Control.Monad.Trans.State.Strict (State, evalState, execState, gets, modify')
+import D17.Cycle (floydOn)
 import Data.Array (Array)
 import qualified Data.Array as A
 import Data.Function (on)
@@ -136,15 +135,12 @@ runMove' ofs = do
 
 -- apply only when there is no piece in the field, as this does not offset the piece itself
 clean :: St ()
-clean = do
-  n <- gets sPieceCount
-  when (n `mod` 1000 == 0) $ do
-    modify' $ \s ->
-      let (ofs, fld') = cleanField $ sField s
-       in s
-            { sField = fld',
-              sYOffset = sYOffset s + ofs
-            }
+clean = modify' $ \s ->
+  let (ofs, fld') = cleanField $ sField s
+   in s
+        { sField = fld',
+          sYOffset = sYOffset s + ofs
+        }
 
 runJet :: St Bool
 runJet = do
@@ -177,6 +173,9 @@ placePiece = do
       finished <- runRound
       unless finished loop
 
+stateHeight :: GameState -> Int
+stateHeight s = fromMaybe 0 (height $ sField s) + sYOffset s
+
 dump :: GameState -> String
 dump s =
   let fld = sField s
@@ -195,18 +194,41 @@ dump s =
 
 ---
 
-solveAny :: Int -> Input -> IO ()
-solveAny n inp = print . flip evalState (initState inp) $ do
-  replicateM_ n placePiece
-  gets $ \s -> fromMaybe 0 (height $ sField s) + sYOffset s
-
+-- the cycle may be too far away to implement cycling here
 solve1 :: Input -> IO ()
-solve1 = solveAny 2022
+solve1 inp =
+  print . flip evalState (initState inp) $ do
+    replicateM_ 2022 placePiece
+    gets stateHeight
+
+solve2 :: Input -> IO ()
+solve2 inp =
+  let n = 1_000_000_000_000
+      (mu, p, dh, s') = locateCycle $ initState inp
+      -- This may be a bit repetitive; I could probably get away with using
+      -- just two points in the cycle and their respective indices, and maybe
+      -- the period too.
+      (cycles, rest) = (n - mu) `divMod` p
+      h' = stateHeight $ execState (replicateM_ rest placePiece) s'
+   in print $ h' + cycles * dh
+  where
+    locateCycle :: GameState -> (Int, Int, Int, GameState)
+    locateCycle s =
+      let iter = execState placePiece
+          (mu, p, sc, sc') = floydOn hash iter s
+       in (mu, p, stateHeight sc' - stateHeight sc, sc)
+
+    hash :: GameState -> (Int, Int, Field)
+    hash s' =
+      ( sJetTime s' `mod` length (sJets s'),
+        sPieceCount s' `mod` 5,
+        sField s'
+      )
 
 ---
 
-debug :: GameState -> Int -> IO ()
-debug s n = putStrLn . flip evalState s $ do
+_debug :: GameState -> Int -> IO ()
+_debug s n = putStrLn . flip evalState s $ do
   replicateM_ n placePiece
   _ <- initPiece
 
@@ -229,3 +251,4 @@ solve :: String -> IO ()
 solve s = do
   inp <- parseOrFail inputP "input" s
   solve1 inp
+  solve2 inp
