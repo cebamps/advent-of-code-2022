@@ -106,3 +106,28 @@ a certain point, we can get to the same state by shifting the source to any one
 of the next coordinates of the path taken by the sand. Once sand settles
 immediately, we have to backtrack to an earlier source. Same idea, but
 different angle and closer to the intuition of the problem.
+
+# Day 16: Proboscidea Volcanium
+
+Could not succeed with part 2... WIP.
+
+# Day 17: Pyroclastic Flow
+
+For part 2 on this one, it was obvious that there should be a trick that would
+allow to skip the simulation. I had a look on forums to confirm that hunch, and
+cycle detection was indeed the answer.
+
+I had already implemented an optimization after part 1 that discards the bottom
+of the playing field whenever a row was filled, which guaranteed that this
+could be considered as a new floor.
+
+Assuming I run that cleanup every time that piece is placed, I can base the
+cycle detection on piece and jet timings and that simplified field.
+
+**Note that this approach does not work on the test case.** I could confirm
+with some trace prints that this is because the test case never fully fills a
+row, and therefore its field does not cycle.
+
+The cycle detection thus needs to rely on more clever data. I don't see how at
+the moment -- how can we be sure that a future piece can not sneak into a gap
+past the part of the field we are looking at?
