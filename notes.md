@@ -124,10 +124,47 @@ could be considered as a new floor.
 Assuming I run that cleanup every time that piece is placed, I can base the
 cycle detection on piece and jet timings and that simplified field.
 
-**Note that this approach does not work on the test case.** I could confirm
-with some trace prints that this is because the test case never fully fills a
-row, and therefore its field does not cycle.
+## First attempt at cycle detection
 
-The cycle detection thus needs to rely on more clever data. I don't see how at
-the moment -- how can we be sure that a future piece can not sneak into a gap
-past the part of the field we are looking at?
+**This approach did not work on the test case.** I could confirm with some
+trace prints that this is because the test case never fully fills a row, and
+therefore its field does not cycle.
+
+The cycle detection thus needs to rely on more clever data.
+
+After looking a bit online, another solution is obvious, though more complex
+too: find any shape that seals the field. This is not foolproof either. In the
+few rounds of the sample case shown on the website, the rightmost column
+remains completely empty.
+
+Another solution is to try a fixed height, but that's not very satisfying.
+
+## Second attempt
+
+My second attempt keeps the cleanup (even if it may be wasteful). However, I
+don't look at the full field anymore.
+
+Instead, when placing each piece, I keep track of how far down it fell, in a
+running maximum.
+
+I can then add to the derived value used in cycle detection (`hash`) the top
+section of the field according to that height, and the height itself.
+
+That way, if a future state is equal to the current one with respect to that
+equality relation, it means that no future piece will fall beyond the top
+section of the current state. Indeed, they will start at least as high as the
+current state's did, and will not by more than the running maximum, which we
+assumed has not increased.
+
+This is not a water-tight approach, but it is a more general heuristic than the
+first one: if there is a full row in the cycle, or more generally any seal that
+physically limits falls, it will imply an upper bound on the fall height.
+
+This will not work if the maximum fall distance is unbounded.
+
+I think in all of those cases, we identify two peaks to our mountain: one
+growing up at speed `x * t` and a smaller one growing up at speed `y * t` with
+`y < x`, the maximum fall distance will be unbounded.
+
+Fortunately, both my input and the test input have a bounded maximum fall
+distance, as this method finds the cycle.

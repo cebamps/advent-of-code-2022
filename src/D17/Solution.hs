@@ -9,6 +9,7 @@ import qualified Data.Array as A
 import Data.Function (on)
 import Data.List (find, groupBy, intercalate)
 import Data.Maybe (fromJust, fromMaybe)
+import Data.Semigroup (Max (..))
 import Data.Set (Set)
 import qualified Data.Set as S
 import Text.Megaparsec hiding (State)
@@ -81,13 +82,13 @@ cleanField fld =
           $ fld
    in case newFloor of
         Nothing -> (0, fld)
-        Just y -> (y + 1, setFloor y fld)
-  where
-    setFloor :: Int -> Field -> Field
-    setFloor y =
-      S.mapMonotonic (|-| Idx (0, y + 1))
-        . snd
-        . S.split (Idx (7, y))
+        Just y -> (y + 1, cutField (y + 1) fld)
+
+cutField :: Int -> Field -> Field
+cutField y =
+  S.mapMonotonic (|-| Idx (0, y))
+    . snd
+    . S.split (Idx (7, y - 1))
 
 ---
 
@@ -97,12 +98,13 @@ data GameState = GameState
     sJets :: !Input,
     sField :: !Field,
     sPiece :: !(Maybe Piece),
-    sYOffset :: !Int
+    sYOffset :: !Int,
+    sLongestFall :: !(Max Int)
   }
   deriving (Show)
 
 initState :: Input -> GameState
-initState j = GameState 0 0 j S.empty Nothing 0
+initState j = GameState 0 0 j S.empty Nothing 0 mempty
 
 type St = State GameState
 
@@ -160,12 +162,15 @@ runRound = runJet >> runGravity
 
 placePiece :: St ()
 placePiece = do
+  initT <- gets sJetTime
   loop
+  dT <- subtract initT <$> gets sJetTime
   modify' $ \s ->
     s
       { sPiece = Nothing,
         -- use of a partial function
-        sField = fromJust (sPiece s) `S.union` sField s
+        sField = fromJust (sPiece s) `S.union` sField s,
+        sLongestFall = sLongestFall s <> Max dT
       }
   clean
   where
@@ -218,12 +223,19 @@ solve2 inp =
           (mu, p, sc, sc') = floydOn hash iter s
        in (mu, p, stateHeight sc' - stateHeight sc, sc)
 
-    hash :: GameState -> (Int, Int, Field)
+    hash :: GameState -> (Int, Int, Field, Max Int)
     hash s' =
       ( sJetTime s' `mod` length (sJets s'),
         sPieceCount s' `mod` 5,
-        sField s'
+        -- a (growing) portion off the top of the field, beyond which no piece
+        -- is expected to fall (once past a first cycle, at least)
+        cutBy (getMax $ sLongestFall s') $ sField s',
+        -- if a piece did fall beyond the portion we expected, this prevents
+        -- cycle detection
+        sLongestFall s'
       )
+    cutBy :: Int -> Field -> Field
+    cutBy n fld = cutField (fromMaybe n (height fld) - n) fld
 
 ---
 
