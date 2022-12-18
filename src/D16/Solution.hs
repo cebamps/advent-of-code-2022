@@ -179,13 +179,25 @@ mapsEach f = fmap go . splits
 solveAny :: (Int, Int) -> Input -> IO ()
 solveAny (t, n) inp = case findPath t (initStateForCount n) inp of
   Nothing -> putStrLn "solution not found"
-  Just (p, _) -> print p
+  x -> debug x
 
 solve1 :: Input -> IO ()
 solve1 = solveAny (30, 1)
 
 solve2 :: Input -> IO ()
 solve2 = solveAny (26, 2)
+
+-- $> [inp, inp'] <- sequence [readFile f >>= parseOrFail inputP "" | f <- ["inputs/d16-test.txt","inputs/d16.txt"]]
+
+--- $> dbg $ findPath 26 (initStateForCount 2) inp
+--
+--- $> mapM_ print . M.toList $ distances inp'
+
+---
+
+debug :: Maybe (Int, [SearchState]) -> IO ()
+debug Nothing = putStrLn "solution not found"
+debug (Just (i, ss)) = print i >> mapM_ print ss
 
 ---
 
