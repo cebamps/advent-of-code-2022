@@ -3,10 +3,9 @@ module D16.Solution (solve) where
 import AOC.Parser
 import Algorithm.Search (dijkstra)
 import Control.Arrow (Arrow (first), (&&&))
-import Data.Function (on)
 import Data.Functor ((<&>))
 import Data.Functor.Compose (Compose (..))
-import Data.List (foldl', groupBy, sort, sortOn)
+import Data.List (foldl', sort)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Set (Set)
@@ -94,11 +93,12 @@ findPath finalTime initState inp = first toObjective <$> dijkstra next cost ((==
     next :: SearchState -> [SearchState]
     next s =
       case [ SearchState {sPos = poss', sT = t', sOpen = open'}
-             | (dt, node', _, possUnordered') <- nextMoves (sPos s) keep,
+             | (dt, node', _, possUnordered') <- nextMoves (sPos s),
                let t' = sT s + dt,
                let open' = S.insert node' $ sOpen s,
                let poss' = sort possUnordered', -- distinguishing the movers would double the search space
-               t' <= finalTime
+               t' <= finalTime,
+               keep node'
            ] of
         [] -> [s {sT = finalTime}] -- no time to get to another valve, stay put
         x -> x
@@ -109,47 +109,18 @@ findPath finalTime initState inp = first toObjective <$> dijkstra next cost ((==
 
     -- gives the possible moves along with the valve opened, time elapsed at
     -- the end of each move, and index of the mover
-    nextMoves :: [Position] -> (Name -> Bool) -> [(Int, Name, Int, [Position])]
-    nextMoves pos keep = prune . concatMap getCompose $ mapsEach (nextMovesOne keep) (zip [0 ..] pos)
-      where
-        -- For moves of different movers that take the same time, we avoid
-        -- combinatorial explosion by pruning the tree. If there is a pair of
-        -- moves that take the same time and could be done in either order
-        -- (e.g., I move to valve A in time 3 and the elephant moves to valve C
-        -- in time 3), we keep only one of them.
-        --
-        -- Note that if the target node is the same for both but they arrive
-        -- from different destinations, then we have to keep the two moves
-        -- because they are not exchangeable (we can only open a valve once).
-        --
-        -- (This last point does not seem to make a difference with my problem
-        -- input.)
-        --
-        -- On implementation, this approximately halved the search time.
-        prune :: [(Int, Name, Int, [Position])] -> [(Int, Name, Int, [Position])]
-        prune mvs =
-          [ mv
-            | byTime <- groupOn dt mvs,
-              mv <- byTime,
-              idx mv == idx (head byTime) || any (\mv' -> dest mv' == dest mv && idx mv' /= idx mv) byTime
-          ]
-        dt (x, _, _, _) = x
-        dest (_, x, _, _) = x
-        idx (_, _, x, _) = x
-        groupOnSorted f = groupBy ((==) `on` f)
-        groupOn f = groupOnSorted f . sortOn f
+    nextMoves :: [Position] -> [(Int, Name, Int, [Position])]
+    nextMoves pos = concatMap getCompose $ mapsEach nextMovesOne (zip [0 ..] pos)
 
     nextMovesOne ::
-      (Name -> Bool) ->
       (Int, Position) ->
       Compose [] ((,,,) Int Name Int) (Position, (Int, Position) -> Position)
-    nextMovesOne keep (idx, pos) =
+    nextMovesOne (idx, pos) =
       Compose
         [ (dt, node', idx, (pos', \(_, pother) -> pother {pDistance = pDistance pother + dt}))
           | (node', d) <- M.toList $ inpD M.! pId pos,
             let dt = d - pDistance pos + 1 -- walk to destination and open valve
                 pos' = Position node' 0,
-            keep node',
             dt >= 0
         ]
 
