@@ -30,6 +30,7 @@ library
       D17.Cycle
       D17.Solution
       D18.Solution
+      D19.Solution
   other-modules:
       Paths_advent_of_code_y2022
   hs-source-dirs:
@@ -425,6 +426,28 @@ executable d17
 
 executable d18
   main-is: d18.hs
+  other-modules:
+      Paths_advent_of_code_y2022
+  hs-source-dirs:
+      exe
+  default-extensions:
+      LambdaCase
+      NumericUnderscores
+  ghc-options: -Wall
+  build-depends:
+      advent-of-code-y2022
+    , array
+    , base >=4.15 && <5
+    , comonad
+    , comonad-extras
+    , containers
+    , megaparsec
+    , search-algorithms
+    , transformers
+  default-language: Haskell2010
+
+executable d19
+  main-is: d19.hs
   other-modules:
       Paths_advent_of_code_y2022
   hs-source-dirs:
