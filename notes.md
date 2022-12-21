@@ -171,6 +171,21 @@ distance, as this method finds the cycle.
 
 # Day 20: Grove Positioning System
 
+## Implementation
+
+I tunnel-visioned on mutable vectors and the ST monad because I hadn't had a
+chance to work with them so far. But thinking a little harder about the
+primitive operations here would have made it clear that a data structure that
+supports efficient insertions and deletions would have been more suitable.
+
+I don't quite know what's available in Haskell, though.
+
+To replace the inverse permutation, a doubly linked list would work nicely (no
+need to search), and a skip list would work even nicer (logarithmic lookup and
+updates), but those are not readily available.
+
+## Performance
+
 (Numbers given here are based on an -O2 build.)
 
 Performance was a bit disappointing at first, so I looked to optimize my
