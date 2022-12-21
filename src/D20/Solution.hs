@@ -72,7 +72,7 @@ solve1 inp =
 solve2 :: Input -> IO ()
 solve2 inp =
   let mixed = mix 10 $ (811589153 *) <$> inp
-   in print mixed >> print (score mixed)
+   in print (score mixed)
 
 -- $> readFile "inputs/d20-test.txt" >>= solve
 
