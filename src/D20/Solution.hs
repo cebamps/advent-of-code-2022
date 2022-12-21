@@ -1,7 +1,7 @@
 module D20.Solution (solve) where
 
 import AOC.Parser
-import Control.Monad (forM_)
+import Control.Monad (forM_, replicateM_)
 import Control.Monad.ST (ST)
 import D20.Permutation (Perm, composeFV, composeVF, mv)
 import Data.Vector (Vector)
@@ -41,28 +41,40 @@ runMixStep lut i (state, inv) = do
 
   return ()
 
--- | runs a full mix, updating the provided initial permutation
-runMix :: LUT -> Perm s -> ST s ()
-runMix lut state = do
+-- | runs a full mix, updating the provided forward and inverse permutation
+runMix :: LUT -> (Perm s, Perm s) -> ST s ()
+runMix lut (state, inv) = do
   let s = MV.length state
-  inv <- MV.generate s id
   forM_ [0 .. s - 1] $ \i -> runMixStep lut i (state, inv)
 
-mix :: LUT -> LUT
-mix lut = V.create $ do
-  state <- MV.generate (V.length lut) id
-  runMix lut state
+mix :: Int -> LUT -> LUT
+mix n lut = V.create $ do
+  let s = V.length lut
+  state <- MV.generate s id
+  inv <- MV.generate s id
+  replicateM_ n $ runMix lut (state, inv)
   composeVF state (return . (lut V.!))
 
 ---
 
+score :: LUT -> (Int, [Int])
+score mixed =
+  let Just zi = V.elemIndex 0 mixed
+      readMixed i = mixed V.! ((zi + i) `mod` V.length mixed)
+      elems = readMixed <$> [1000, 2000, 3000]
+   in (sum elems, elems)
+
 solve1 :: Input -> IO ()
 solve1 inp =
-  let mixed = mix inp
-      Just zi = V.elemIndex 0 mixed
-      readMixed i = mixed V.! ((zi + i) `mod` V.length mixed)
-      elems =readMixed <$> [1000,2000,3000] 
-  in print (sum elems, elems)
+  let mixed = mix 1 inp
+   in print (score mixed)
+
+solve2 :: Input -> IO ()
+solve2 inp =
+  let mixed = mix 10 $ (811589153 *) <$> inp
+   in print mixed >> print (score mixed)
+
+-- $> readFile "inputs/d20-test.txt" >>= solve
 
 ---
 
@@ -81,3 +93,4 @@ solve :: String -> IO ()
 solve s = do
   inp <- parseOrFail inputP "input" s
   solve1 inp
+  solve2 inp
