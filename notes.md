@@ -171,6 +171,8 @@ distance, as this method finds the cycle.
 
 # Day 20: Grove Positioning System
 
+(Numbers given here are based on an -O2 build.)
+
 Performance was a bit disappointing at first, so I looked to optimize my
 initial part 2 solution to bring total runtime down from its ~63 seconds.
 
@@ -178,13 +180,14 @@ Profiling showed that the main bottleneck is the reading writing, and
 allocation in `composeFF`, used for all compositions of permutation
 arrays/functions.
 
-Three steps of optimization helped:
+Three steps of optimization helped to bring down runtime to 7 seconds!
 
 - carry a buffer around to store the result of the computation
 - use unsafe reads (no bounds checking)
 - use unboxed vectors (this was the winner one and also the easiest)
 
-This brought down runtime to 7 seconds!
+I removed the first two optimizations later because the complexity cost was not
+so much worth it: without them, runtime is at around 8.5 seconds.
 
 More could be done:
 

@@ -12,8 +12,6 @@ import Text.Megaparsec.Char (char, digitChar, eol)
 
 type LUT = Vector Int
 
-type Buffer s = Perm s
-
 type Input = LUT
 
 -- There are duplicates, and the list has 5000 elements.
@@ -27,16 +25,16 @@ getPos s n i
   | otherwise = 1 + ((i - 1 + n) `mod` (s - 1)) -- leave beginning undisturbed
 
 -- | runs a step of the mix, updating the provided forward and inverse permutation
-runMixStep :: LUT -> Buffer s -> Int -> (Perm s, Perm s) -> ST s ()
-runMixStep lut buf i (state, inv) = do
+runMixStep :: LUT -> Int -> (Perm s, Perm s) -> ST s ()
+runMixStep lut i (state, inv) = do
   pos <- MV.read inv i
 
   let s = MV.length state
       x = lut V.! i
       pos' = getPos s x pos
 
-  MV.copy state =<< composeFV buf (return . mv pos pos') state
-  MV.copy inv =<< composeVF buf inv (return . mv pos' pos)
+  MV.copy state =<< composeFV (return . mv pos pos') state
+  MV.copy inv =<< composeVF inv (return . mv pos' pos)
 
   -- traceM $ "moving " <> show x <> " at " <> show pos <> " to " <> show pos'
   -- traceShowM =<< V.freeze =<< composeVF state (return . (lut V.!))
@@ -44,19 +42,18 @@ runMixStep lut buf i (state, inv) = do
   return ()
 
 -- | runs a full mix, updating the provided forward and inverse permutation
-runMix :: LUT -> Buffer s -> (Perm s, Perm s) -> ST s ()
-runMix lut buf (state, inv) = do
+runMix :: LUT -> (Perm s, Perm s) -> ST s ()
+runMix lut (state, inv) = do
   let s = MV.length state
-  forM_ [0 .. s - 1] $ \i -> runMixStep lut buf i (state, inv)
+  forM_ [0 .. s - 1] $ \i -> runMixStep lut i (state, inv)
 
 mix :: Int -> LUT -> LUT
 mix n lut = V.create $ do
   let s = V.length lut
-  buf <- MV.new s
   state <- MV.generate s id
   inv <- MV.generate s id
-  replicateM_ n $ runMix lut buf (state, inv)
-  composeVF buf state (return . (lut V.!))
+  replicateM_ n $ runMix lut (state, inv)
+  composeVF state (return . (lut V.!))
 
 ---
 
