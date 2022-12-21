@@ -17,6 +17,7 @@ dependencies:
   - comonad-extras
   - array
   - search-algorithms
+  - vector
 
 library:
   source-dirs: src
@@ -25,7 +26,7 @@ library:
 executables:
   d01: &base-exe
     source-dirs: exe
-    main: d01.hs
+    main: d20.hs
     dependencies: advent-of-code-y2022
   d02: { <<: *base-exe, main: d02.hs }
   d03: { <<: *base-exe, main: d03.hs }
@@ -45,7 +46,7 @@ executables:
   d17: { <<: *base-exe, main: d17.hs }
   d18: { <<: *base-exe, main: d18.hs }
   d19: { <<: *base-exe, main: d19.hs }
-# d20: { <<: *base-exe, main: d20.hs }
+  d20: { <<: *base-exe, main: d20.hs }
 # d21: { <<: *base-exe, main: d21.hs }
 # d22: { <<: *base-exe, main: d22.hs }
 # d23: { <<: *base-exe, main: d23.hs }
