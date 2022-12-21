@@ -33,6 +33,7 @@ library
       D19.Solution
       D20.Permutation
       D20.Solution
+      D21.Solution
   other-modules:
       Paths_advent_of_code_y2022
   hs-source-dirs:
@@ -47,6 +48,7 @@ library
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -70,6 +72,7 @@ executable d01
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -93,6 +96,7 @@ executable d02
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -116,6 +120,7 @@ executable d03
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -139,6 +144,7 @@ executable d04
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -162,6 +168,7 @@ executable d05
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -185,6 +192,7 @@ executable d06
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -208,6 +216,7 @@ executable d07
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -231,6 +240,7 @@ executable d08
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -254,6 +264,7 @@ executable d09
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -277,6 +288,7 @@ executable d10
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -300,6 +312,7 @@ executable d11
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -323,6 +336,7 @@ executable d12
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -346,6 +360,7 @@ executable d13
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -369,6 +384,7 @@ executable d14
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -392,6 +408,7 @@ executable d15
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -415,6 +432,7 @@ executable d16
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -438,6 +456,7 @@ executable d17
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -461,6 +480,7 @@ executable d18
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -484,6 +504,7 @@ executable d19
     , comonad
     , comonad-extras
     , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
@@ -507,6 +528,31 @@ executable d20
     , comonad
     , comonad-extras
     , containers
+    , data-fix
+    , megaparsec
+    , search-algorithms
+    , transformers
+    , vector
+  default-language: Haskell2010
+
+executable d21
+  main-is: d21.hs
+  other-modules:
+      Paths_advent_of_code_y2022
+  hs-source-dirs:
+      exe
+  default-extensions:
+      LambdaCase
+      NumericUnderscores
+  ghc-options: -Wall
+  build-depends:
+      advent-of-code-y2022
+    , array
+    , base >=4.15 && <5
+    , comonad
+    , comonad-extras
+    , containers
+    , data-fix
     , megaparsec
     , search-algorithms
     , transformers
