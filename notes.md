@@ -168,3 +168,33 @@ growing up at speed `x * t` and a smaller one growing up at speed `y * t` with
 
 Fortunately, both my input and the test input have a bounded maximum fall
 distance, as this method finds the cycle.
+
+# Day 20: Grove Positioning System
+
+Performance was a bit disappointing at first, so I looked to optimize my
+initial part 2 solution to bring total runtime down from its ~63 seconds.
+
+Profiling showed that the main bottleneck is the reading writing, and
+allocation in `composeFF`, used for all compositions of permutation
+arrays/functions.
+
+Three steps of optimization helped:
+
+- carry a buffer around to store the result of the computation
+- use unsafe reads (no bounds checking)
+- use unboxed vectors (this was the winner one and also the easiest)
+
+This brought down runtime to 7 seconds!
+
+More could be done:
+
+- Now that there is a buffer, it could swap places with the input to avoid
+  copying from the buffer into the input after every computation.
+- The composition with a rotation permutation on the left can be done almost
+  in-place, by shifting elements to the left/right, eliminating the need for a
+  buffer vector.
+  - However, updating the inverse is another story: this is also a rotation,
+    but it is composed on the right. I wonder if there are efficient
+    implementations of that.
+
+And maybe I am overlooking something obvious?

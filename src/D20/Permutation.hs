@@ -8,13 +8,15 @@ where
 
 import Control.Monad ((<=<))
 import Control.Monad.ST (ST)
-import Data.Vector.Mutable
+import Data.Vector.Unboxed.Mutable
 import Prelude hiding (length, read)
 
 -- | A permutation, encoded such that the i-th element of the vector contains
 -- the index of the i-th item after permutation. In other words, the vector is
 -- identical to the permutation applied to [0..n-1]
 type Perm s = STVector s Int
+
+type Buffer s = Perm s
 
 --  tells where an index has landed after moving the source to the destination
 
@@ -27,11 +29,13 @@ mv p p' i
   | otherwise = i + signum (p' - p)
 
 {-# ANN composeVF "HLint: ignore Eta reduce" #-}
-composeVF :: Perm s -> (Int -> ST s Int) -> ST s (Perm s)
-composeVF v f = composeFF (length v) (read v) f
+composeVF :: Buffer s -> Perm s -> (Int -> ST s Int) -> ST s (Perm s)
+composeVF buf v f = composeFF buf (length v) (read v) f
 
-composeFV :: (Int -> ST s Int) -> Perm s -> ST s (Perm s)
-composeFV f v = composeFF (length v) f (read v)
+composeFV :: Buffer s -> (Int -> ST s Int) -> Perm s -> ST s (Perm s)
+composeFV buf f v = composeFF buf (length v) f (read v)
 
-composeFF :: Int -> (Int -> ST s Int) -> (Int -> ST s Int) -> ST s (Perm s)
-composeFF n f1 f2 = generateM n (f2 <=< f1)
+composeFF :: Buffer s -> Int -> (Int -> ST s Int) -> (Int -> ST s Int) -> ST s (Perm s)
+composeFF buf n f1 f2 =
+  let x = iforM_ buf $ \i _ -> (unsafeWrite buf i <=< f2 <=< f1) i
+   in buf <$ x
