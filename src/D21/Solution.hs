@@ -3,8 +3,10 @@
 module D21.Solution (solve) where
 
 import AOC.Parser
+import Data.Bifunctor (Bifunctor (..))
 import Data.Fix (Fix (..), foldFix, unfoldFix)
 import Data.Maybe (fromJust)
+import Data.Ratio (Ratio, (%))
 import Text.Megaparsec
 import Text.Megaparsec.Char (char, digitChar, eol, letterChar, string)
 
@@ -16,10 +18,16 @@ type AST a = Fix (ExprF a)
 
 type RawExpr a = ExprF a String
 
-type Input = [(String, RawExpr Int)]
+type RawExprs a = [(String, RawExpr a)]
 
-build :: Input -> AST Int
-build inp = buildWith get (get "root")
+type Input = RawExprs Int
+
+instance Bifunctor ExprF where
+  bimap f _ (Lit a) = Lit (f a)
+  bimap _ g (BinOp op x y) = BinOp op (g x) (g y)
+
+buildFrom :: String -> RawExprs a -> AST a
+buildFrom s inp = buildWith get (get s)
   where
     get k = fromJust $ lookup k inp
 
@@ -43,8 +51,55 @@ runBinOp Div = div
 
 ---
 
+-- Ratios save the day! The two sides of the equality don't have integer
+-- factors.
+type Poly a = (Ratio a, Ratio a)
+
+polyUnknown :: Integral a => Poly a
+polyUnknown = (1, 0)
+
+polyConst :: Integral a => a -> Poly a
+polyConst x = (0, x % 1)
+
+reduce :: (Show a, Integral a) => AST (Poly a) -> Poly a
+reduce = foldFix $ \case
+  Lit x -> x
+  BinOp op x y -> runBinOpPoly op x y
+
+runBinOpPoly :: (Show a, Integral a) => Op -> Poly a -> Poly a -> Poly a
+runBinOpPoly Plus (x1, x2) (y1, y2) = (x1 + y1, x2 + y2)
+runBinOpPoly Minus (x1, x2) (y1, y2) = (x1 - y1, x2 - y2)
+runBinOpPoly Mul (0, x) (y1, y2) = (x * y1, x * y2)
+runBinOpPoly Mul x y@(0, _) = runBinOpPoly Mul y x
+runBinOpPoly Div (x1, x2) (0, y) = (x1 / y, x2 / y)
+runBinOpPoly op l r = error $ "unsupported polyonmial operation " <> show (op, l, r)
+
+---
+
 solve1 :: Input -> IO ()
-solve1 = print . eval . build
+solve1 = print . eval . buildFrom "root"
+
+solve2 :: Input -> IO ()
+solve2 inp =
+  let Just (BinOp _ ln rn) = lookup "root" inp
+      leftVal = reduce . buildFrom ln $ inp'
+      rightVal = reduce . buildFrom rn $ inp'
+   in print $ solveEquality leftVal rightVal
+  where
+    inp' = flip fmap inp $ \case
+      ("humn", x) -> ("humn", first (const polyUnknown) x)
+      (n, x) -> (n, first polyConst x)
+
+solveEquality :: Integral a => Poly a -> Poly a -> Ratio a
+-- a x + b == c y + d
+solveEquality (a, b) (c, d) = (d - b) / (a - c)
+
+---
+
+_showAst :: Show a => AST a -> String
+_showAst = foldFix $ \case
+  Lit x -> show x
+  BinOp op x y -> "(" <> show op <> " " <> x <> " " <> y <> ")"
 
 ---
 
@@ -58,7 +113,7 @@ rawExprP :: Parser (RawExpr Int)
 rawExprP = litP <|> binopP
   where
     litP = Lit <$> intP
-    binopP = flip BinOp <$> nameP <* sep <*> opP  <* sep <*> nameP
+    binopP = flip BinOp <$> nameP <* sep <*> opP <* sep <*> nameP
     sep = char ' '
 
 nameP :: Parser String
@@ -83,3 +138,4 @@ solve :: String -> IO ()
 solve s = do
   inp <- parseOrFail inputP "input" s
   solve1 inp
+  solve2 inp
