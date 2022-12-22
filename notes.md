@@ -216,3 +216,29 @@ More could be done:
     implementations of that.
 
 And maybe I am overlooking something obvious?
+
+# Day 21: Monkey Math
+
+For this one I really wanted to experiment with recursion schemes! It worked
+alright, I think.
+
+A few take-aways:
+
+- There is a ton of theory to learn there. What are Mu and Nu? What are all
+  those [fun functions](https://hackage.haskell.org/package/recursion-schemes-5.2.2.2/docs/Data-Functor-Foldable.html)
+  in `recursion-schemes` `Data.Functor.Foldable`?
+
+- Instead of using errors in my polynomial reduction, I could have used the
+  monadic `foldFixM` and friends.
+
+- My use case combines unfold and fold, which is exactly what `refold` is for.
+  That's called a [hylomorphism](https://en.wikipedia.org/wiki/Hylomorphism_(computer_science)).
+
+- I don't understand the signature of `refold` in `recursion-schemes`, and the
+  [implementation](https://hackage.haskell.org/package/recursion-schemes-5.2.2.2/docs/src/Data.Functor.Foldable.html#hylo)
+  is amazing.
+
+- I am peeved that recursive data structures built on `Fix` do not easily get
+  Show and Functor typeclass instances. And also that deriving Bifunctor is not
+  possible. Low ergonomics make me wonder how this is debugged, and whether
+  there should exist a non-Fix isomorphic data structure to convert from/to...

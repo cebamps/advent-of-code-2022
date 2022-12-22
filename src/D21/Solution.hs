@@ -49,10 +49,10 @@ runBinOp Mul = (*)
 -- about floating point either
 runBinOp Div = div
 
----
+--- part 2
 
--- Ratios save the day! The two sides of the equality don't have integer
--- factors.
+-- Ratios save the day for part 2! The two sides of the equality don't have integer
+-- factors. Now I understand why there was no mention of integer division in part 1.
 type Poly a = (Ratio a, Ratio a)
 
 polyUnknown :: Integral a => Poly a
@@ -66,6 +66,7 @@ reduce = foldFix $ \case
   Lit x -> x
   BinOp op x y -> runBinOpPoly op x y
 
+-- assuming that the polynomials are linear and hoping for the best
 runBinOpPoly :: (Show a, Integral a) => Op -> Poly a -> Poly a -> Poly a
 runBinOpPoly Plus (x1, x2) (y1, y2) = (x1 + y1, x2 + y2)
 runBinOpPoly Minus (x1, x2) (y1, y2) = (x1 - y1, x2 - y2)
