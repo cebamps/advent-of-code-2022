@@ -36,10 +36,8 @@ runMixStep lut i (state, inv) = do
   MV.copy state =<< composeFV (return . mv pos pos') state
   MV.copy inv =<< composeVF inv (return . mv pos' pos)
 
-  -- traceM $ "moving " <> show x <> " at " <> show pos <> " to " <> show pos'
-  -- traceShowM =<< V.freeze =<< composeVF state (return . (lut V.!))
-
-  return ()
+--   traceM $ "moving " <> show x <> " at " <> show pos <> " to " <> show pos'
+--   traceShowM =<< V.freeze =<< composeVF state (return . (lut V.!))
 
 -- | runs a full mix, updating the provided forward and inverse permutation
 runMix :: LUT -> (Perm s, Perm s) -> ST s ()
@@ -73,8 +71,6 @@ solve2 :: Input -> IO ()
 solve2 inp =
   let mixed = mix 10 $ V.map (811589153 *) inp
    in print (score mixed)
-
--- $> readFile "inputs/d20-test.txt" >>= solve
 
 ---
 
