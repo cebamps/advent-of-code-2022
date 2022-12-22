@@ -18,15 +18,15 @@ type AST a = Fix (ExprF a)
 
 type RawExpr a = ExprF a String
 
-type RawExprs a = [(String, RawExpr a)]
+type Definitions a = [(String, RawExpr a)]
 
-type Input = RawExprs Int
+type Input = Definitions Int
 
 instance Bifunctor ExprF where
   bimap f _ (Lit a) = Lit (f a)
   bimap _ g (BinOp op x y) = BinOp op (g x) (g y)
 
-buildFrom :: String -> RawExprs a -> AST a
+buildFrom :: String -> Definitions a -> AST a
 buildFrom s inp = buildWith get (get s)
   where
     get k = fromJust $ lookup k inp
@@ -36,18 +36,21 @@ buildWith look = unfoldFix $ \case
   Lit x -> Lit x
   BinOp op x y -> BinOp op (look x) (look y)
 
-eval :: Integral a => AST a -> a
-eval = foldFix $ \case
+evalWith :: (Op -> a -> a -> a) -> AST a -> a
+evalWith runBinOp = foldFix $ \case
   Lit x -> x
   BinOp op x y -> runBinOp op x y
 
-runBinOp :: Integral a => Op -> a -> a -> a
-runBinOp Plus = (+)
-runBinOp Minus = (-)
-runBinOp Mul = (*)
+eval :: Integral a => AST a -> a
+eval = evalWith runBinOpInt
+
+runBinOpInt :: Integral a => Op -> a -> a -> a
+runBinOpInt Plus = (+)
+runBinOpInt Minus = (-)
+runBinOpInt Mul = (*)
 -- the instructions don't talk about integer division, but they don't talk
 -- about floating point either
-runBinOp Div = div
+runBinOpInt Div = div
 
 --- part 2
 
@@ -61,10 +64,8 @@ polyUnknown = (1, 0)
 polyConst :: Integral a => a -> Poly a
 polyConst x = (0, x % 1)
 
-reduce :: (Show a, Integral a) => AST (Poly a) -> Poly a
-reduce = foldFix $ \case
-  Lit x -> x
-  BinOp op x y -> runBinOpPoly op x y
+evalPoly :: (Show a, Integral a) => AST (Poly a) -> Poly a
+evalPoly = evalWith runBinOpPoly
 
 -- assuming that the polynomials are linear and hoping for the best
 runBinOpPoly :: (Show a, Integral a) => Op -> Poly a -> Poly a -> Poly a
@@ -83,10 +84,11 @@ solve1 = print . eval . buildFrom "root"
 solve2 :: Input -> IO ()
 solve2 inp =
   let Just (BinOp _ ln rn) = lookup "root" inp
-      leftVal = reduce . buildFrom ln $ inp'
-      rightVal = reduce . buildFrom rn $ inp'
+      leftVal = evalPoly . buildFrom ln $ inp'
+      rightVal = evalPoly . buildFrom rn $ inp'
    in print $ solveEquality leftVal rightVal
   where
+    inp' :: Definitions (Poly Int)
     inp' = flip fmap inp $ \case
       ("humn", x) -> ("humn", first (const polyUnknown) x)
       (n, x) -> (n, first polyConst x)
